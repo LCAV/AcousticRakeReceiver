@@ -1,6 +1,9 @@
 
 import numpy as np
+
 from SoundSource import SoundSource
+
+import constants
 
 '''
 Room
@@ -147,7 +150,7 @@ class Room(object):
     return images, damping
 
 
-  def sampleImpulseResponse(self, mic_pos, Fs, max_order=None, c=343., window=True):
+  def impulseResponse(self, mic_pos, Fs, t0=0., max_order=None, c=constants.c, window=False):
     '''
     Return sampled room impulse response based on images list
     '''
@@ -170,7 +173,7 @@ class Room(object):
 
       # compute the distance
       dist = np.sqrt(np.sum((img - mic[np.newaxis,:])**2, axis=1))
-      time = dist/c
+      time = dist/c + t0
 
       # the minimum length needed is the maximum time of flight multiplied by Fs
       # make it twice that amount to minimize aliasing
@@ -223,5 +226,28 @@ class Room(object):
     Return true if the corners of the room are arranged anti-clockwise
     '''
     return (cls.area(corners) > 0)
+
+
+  @classmethod
+  def ccw3p(cls, p):
+    '''
+    Argument: p, a (3,2)-ndarray whose rows are the vertices of a 2D triangle
+    Returns
+    1: if triangle vertices are counter-clockwise
+    -1: if triangle vertices are clock-wise
+    0: if vertices are colinear
+
+    Ref: https://en.wikipedia.org/wiki/Curve_orientation
+    '''
+    if (p.shape != (3,2)):
+      raise NameError('Room.ccw3p is for three 2D points, input is 3x2 ndarray')
+    D = (p[1,0]-p[0,0])*(p[2,1]-p[0,1]) - (p[2,0]-p[0,0])*(p[1,1]-p[0,1])
+    
+    if (np.abs(D) < constants.eps):
+      return 0
+    elif (D > 0):
+      return 1
+    else:
+      return -1
 
 
