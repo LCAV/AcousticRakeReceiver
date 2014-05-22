@@ -1,0 +1,9 @@
+
+Room
+----
+
+* Visibility of source from microphone
+* Blocking walls (convex hull). A corner can be verified as belonging to convex
+  hull by checking the ordering of itself and front and back neighbour (clockwise
+  vs anticlockwise)
+* Verify if a point is in the polygon or outside
