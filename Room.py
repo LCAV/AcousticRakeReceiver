@@ -1,14 +1,6 @@
+
 import numpy as np
-
-class SoundSource(object):
-
-  def __init__(self, position, images=None):
-    self.position = np.array(position)
-    if (images == None):
-      self.images = []
-    else:
-      self.images = images
-
+from SoundSource import SoundSource
 
 '''
 Room
@@ -17,7 +9,7 @@ A room geometry is defined by all the source and all its images
 
 class Room(object):
 
-  def __init__(self, corners, max_order=1, sources=None):
+  def __init__(self, corners, absorption=1., max_order=1, sources=None):
 
     # make sure we have an ndarray of the right size
     corners = np.array(corners)
@@ -26,7 +18,7 @@ class Room(object):
 
     # make sure the corners are anti-clockwise
     if (self.area(corners) <= 0):
-      corners = corners[::-1]
+      raise NameError('Room corners must be anti-clockwise')
 
     self.corners = corners
     self.dim = len(corners[0])
@@ -37,6 +29,15 @@ class Room(object):
     # compute normals (outward pointing)
     self.normals = self.walls[:,[1,0]]/np.linalg.norm(self.walls, axis=1)[:,np.newaxis]
     self.normals[:,1] *= -1;
+
+    # list of attenuation factors for the wall reflections
+    absorption = np.array(absorption, dtype='float64')
+    if (np.rank(absorption) == 0):
+      self.absorption = absorption*np.ones(self.corners.shape[0])
+    elif (np.rank(absorption) > 1 or self.corners.shape[0] != len(absorption)):
+      raise NameError('Absorption and corner must be the same size')
+    else:
+      self.absorption = absorption
   
     # a list of sources
     if (sources is None):
@@ -44,46 +45,49 @@ class Room(object):
     elif (sources is list):
       self.sources = sources
     else:
-      raise NameError('Room needs a list or sources.')
+      raise NameError('Room needs a source or list of sources.')
 
     # a maximum orders for image source computation
     self.max_order = max_order
 
 
-  def addSource(self, position):
-
-    # add a new source in the room
-    self.sources.append(SoundSource(position))
-    new_source = self.sources[-1]
+  def addSource(self, position, signal=None):
 
     # generate first order images
-    new_source.images = [self.firstOrderImages(position)]
+    i,d = self.firstOrderImages(np.array(position))
+    images = [i]
+    damping = [d]
 
     # generate all higher order images up to max_order
     o = 1
     while o < self.max_order:
       # generate all images of images of previous order
-      images = np.zeros((0,self.dim))
-      for s in new_source.images[o-1]:
-        images = np.concatenate((images, self.firstOrderImages(s)), axis=0)
+      img = np.zeros((0,self.dim))
+      dmp = np.array([])
+      for si, sd in zip(images[o-1], damping[o-1]):
+        i,d = self.firstOrderImages(si)
+        img = np.concatenate((img, i), axis=0)
+        dmp = np.concatenate((dmp, d*sd), axis=1)
 
       # remove duplicates
-      images = images[np.lexsort(images.T)]
-      diff = np.diff(images, axis=0)
-      ui = np.ones(len(images), 'bool')
+      ordering = np.lexsort(img.T)
+      img = img[ordering]
+      dmp = dmp[ordering]
+      diff = np.diff(img, axis=0)
+      ui = np.ones(len(img), 'bool')
       ui[1:] = (diff != 0).any(axis=1)
 
       # add to array of images
-      new_source.images.append(images[ui])
+      images.append(img[ui])
+      damping.append(dmp[ui])
 
       # next order
       o += 1
 
+    # add a new source to the source list
+    self.sources.append(SoundSource(position, images=images, \
+        damping=damping, signal=signal))
 
-  def sampleImpulseResponse(self, Fs, mic_pos):
-    '''
-    Return sampled room impulse response for every source in the room
-    '''
 
 
   def plot(self, ord=None):
@@ -100,23 +104,30 @@ class Room(object):
     p = PatchCollection([polygon], cmap=matplotlib.cm.jet, alpha=0.4)
     ax.add_collection(p)
 
+    # define some markers for different sources and colormap for damping
+    markers = ['o','s', 'v','x','.']
+    cmap = plt.get_cmap('YlGnBu')
     # draw the scatter of images
-    colors = ['b','g','r','c','m','y','k']
-    markers = ['o','s', 'v','.']
     for i, source in enumerate(self.sources):
       # draw source
-      ax.scatter(source.position[0], source.position[1], c=colors[-1], s=20, \
-          marker=markers[i%len(markers)], edgecolor='none')
+      ax.scatter(source.position[0], source.position[1], c=cmap(1.), s=20, \
+          marker=markers[i%len(markers)], edgecolor=cmap(1.))
 
       # draw images
       if (ord == None):
         ord = self.max_order
       for o in xrange(ord):
+        # map the damping to a log scale (mapping 1 to 1)
+        val = (np.log2(source.damping[o])+10.)/10.
+        # plot the images
         ax.scatter(source.images[o][:,0], source.images[o][:,1], \
-            c=colors[o%len(colors)], s=20, \
-            marker=markers[i%len(markers)], edgecolor='none')
+            c=cmap(val), s=20, \
+            marker=markers[i%len(markers)], edgecolor=cmap(val))
 
+    # keep axis equal, or the symmetry is lost
     ax.axis('equal')
+
+    return fig, ax
 
 
   def firstOrderImages(self, source_position):
@@ -130,11 +141,58 @@ class Room(object):
     # compute images points, positivity is to get only the reflections outside the room
     images = source_position + 2*d[ip > 0,:]
 
-    return images
+    # collect absorption factors of reflecting walls
+    damping = self.absorption[ip > 0]
+
+    return images, damping
+
+
+  def sampleImpulseResponse(self, mic_pos, Fs, max_order=None, c=343., window=True):
+    '''
+    Return sampled room impulse response based on images list
+    '''
+
+    mic = np.array(mic_pos)
+    h = []
+
+    for source in self.sources:
+
+      # use all images available by default
+      if (max_order == None):
+        max_order = len(source.images)
+
+      # stack source and all images
+      img = np.array([source.position])
+      dmp = np.array([1.])
+      for o in xrange(max_order):
+        img = np.concatenate((img, source.images[o]), axis=0)
+        dmp = np.concatenate((dmp, source.damping[o]), axis=0)
+
+      # compute the distance
+      dist = np.sqrt(np.sum((img - mic[np.newaxis,:])**2, axis=1))
+      time = dist/c
+
+      # the minimum length needed is the maximum time of flight multiplied by Fs
+      # make it twice that amount to minimize aliasing
+      N = 2*np.ceil(time.max()*Fs)
+
+      # compute the discrete band-limited spectrum
+      index = np.arange(0, N/2+1)
+      F = np.exp(-2j*np.pi*index[:,np.newaxis]*time[np.newaxis,:]*float(Fs)/N)
+      H = np.dot(F, dmp/(4*np.pi*dist))
+
+      # window if required
+      if (window == True):
+        H *= np.hanning(N+1)[N/2:]
+
+      # inverse the spectrum to get the band-limited impulse response
+      h.append(np.fft.irfft(H))
+
+    return h
 
 
   @classmethod
-  def shoeBox2D(cls, p1, p2, max_order=1):
+  def shoeBox2D(cls, p1, p2, max_order=1, absorption=1.):
     '''
     Create a new Shoe Box room geometry.
     Arguments:
@@ -146,7 +204,7 @@ class Room(object):
     # compute room characteristics
     corners = np.array([[p1[0], p1[1]], [p2[0], p1[1]], [p2[0], p2[1]], [p1[0], p2[1]]])
 
-    return Room(corners, max_order)
+    return Room(corners, absorption=absorption, max_order=max_order)
 
 
   @classmethod
