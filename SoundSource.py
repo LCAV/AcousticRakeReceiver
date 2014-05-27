@@ -31,7 +31,7 @@ class SoundSource(object):
         if (len(damping) != len(images)):
             raise NameError('Images and damping must have same shape')
         for i in range(len(damping)):
-          if (damping[i].shape[0] != images[i].shape[0]):
+          if (damping[i].shape[0] != images[i].shape[1]):
             raise NameError('Images and damping must have same shape')
 
         # copy over if correct

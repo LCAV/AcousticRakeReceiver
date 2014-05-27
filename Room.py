@@ -12,7 +12,7 @@ A room geometry is defined by all the source and all its images
 
 class Room(object):
 
-  def __init__(self, corners, absorption=1., max_order=1, sources=None):
+  def __init__(self, corners, absorption=1., max_order=1, sources=None, mics=None):
 
     # make sure we have an ndarray of the right size
     corners = np.array(corners)
@@ -24,20 +24,20 @@ class Room(object):
       raise NameError('Room corners must be anti-clockwise')
 
     self.corners = corners
-    self.dim = len(corners[0])
+    self.dim = corners.shape[0]
 
     # circular wall vectors (counter clockwise)
-    self.walls = self.corners - self.corners[xrange(-1,corners.shape[0]-1), :]
+    self.walls = self.corners - self.corners[:,xrange(-1,corners.shape[1]-1)]
 
     # compute normals (outward pointing)
-    self.normals = self.walls[:,[1,0]]/np.linalg.norm(self.walls, axis=1)[:,np.newaxis]
-    self.normals[:,1] *= -1;
+    self.normals = self.walls[[1,0],:]/np.linalg.norm(self.walls, axis=0)[np.newaxis,:]
+    self.normals[1,:] *= -1;
 
     # list of attenuation factors for the wall reflections
     absorption = np.array(absorption, dtype='float64')
     if (np.rank(absorption) == 0):
-      self.absorption = absorption*np.ones(self.corners.shape[0])
-    elif (np.rank(absorption) > 1 or self.corners.shape[0] != len(absorption)):
+      self.absorption = absorption*np.ones(self.corners.shape[1])
+    elif (np.rank(absorption) > 1 or self.corners.shape[1] != len(absorption)):
       raise NameError('Absorption and corner must be the same size')
     else:
       self.absorption = absorption
@@ -50,47 +50,14 @@ class Room(object):
     else:
       raise NameError('Room needs a source or list of sources.')
 
+    # a microphone array
+    if (mics is not None):
+      self.micArray = None
+    else:
+      self.micArray = mics
+
     # a maximum orders for image source computation
     self.max_order = max_order
-
-
-  def addSource(self, position, signal=None):
-
-    # generate first order images
-    i,d = self.firstOrderImages(np.array(position))
-    images = [i]
-    damping = [d]
-
-    # generate all higher order images up to max_order
-    o = 1
-    while o < self.max_order:
-      # generate all images of images of previous order
-      img = np.zeros((0,self.dim))
-      dmp = np.array([])
-      for si, sd in zip(images[o-1], damping[o-1]):
-        i,d = self.firstOrderImages(si)
-        img = np.concatenate((img, i), axis=0)
-        dmp = np.concatenate((dmp, d*sd), axis=1)
-
-      # remove duplicates
-      ordering = np.lexsort(img.T)
-      img = img[ordering]
-      dmp = dmp[ordering]
-      diff = np.diff(img, axis=0)
-      ui = np.ones(len(img), 'bool')
-      ui[1:] = (diff != 0).any(axis=1)
-
-      # add to array of images
-      images.append(img[ui])
-      damping.append(dmp[ui])
-
-      # next order
-      o += 1
-
-    # add a new source to the source list
-    self.sources.append(SoundSource(position, images=images, \
-        damping=damping, signal=signal))
-
 
 
   def plot(self, ord=None):
@@ -103,12 +70,17 @@ class Room(object):
     fig, ax = plt.subplots()
 
     # draw room
-    polygon = Polygon(self.corners, True)
+    polygon = Polygon(self.corners.T, True)
     p = PatchCollection([polygon], cmap=matplotlib.cm.jet, alpha=0.4)
     ax.add_collection(p)
 
+    # draw the microphones
+    if (self.micArray is not None):
+      for mic in self.micArray.R.T:
+        ax.scatter(mic[0], mic[1], marker='x')
+
     # define some markers for different sources and colormap for damping
-    markers = ['o','s', 'v','x','.']
+    markers = ['o','s', 'v','.']
     cmap = plt.get_cmap('YlGnBu')
     # draw the scatter of images
     for i, source in enumerate(self.sources):
@@ -123,7 +95,7 @@ class Room(object):
         # map the damping to a log scale (mapping 1 to 1)
         val = (np.log2(source.damping[o])+10.)/10.
         # plot the images
-        ax.scatter(source.images[o][:,0], source.images[o][:,1], \
+        ax.scatter(source.images[o][0,:], source.images[o][1,:], \
             c=cmap(val), s=20, \
             marker=markers[i%len(markers)], edgecolor=cmap(val))
 
@@ -133,16 +105,58 @@ class Room(object):
     return fig, ax
 
 
+  def addMicrophoneArray(self, micArray):
+    self.micArray = micArray
+
+
+  def addSource(self, position, signal=None):
+
+    # generate first order images
+    i,d = self.firstOrderImages(np.array(position))
+    images = [i]
+    damping = [d]
+
+    # generate all higher order images up to max_order
+    o = 1
+    while o < self.max_order:
+      # generate all images of images of previous order
+      img = np.zeros((self.dim,0))
+      dmp = np.array([])
+      for si, sd in zip(images[o-1].T, damping[o-1]):
+        i,d = self.firstOrderImages(si)
+        img = np.concatenate((img, i), axis=1)
+        dmp = np.concatenate((dmp, d*sd))
+
+      # remove duplicates
+      ordering = np.lexsort(img)
+      img = img[:,ordering]
+      dmp = dmp[ordering]
+      diff = np.diff(img, axis=1)
+      ui = np.ones(img.shape[1], 'bool')
+      ui[1:] = (diff != 0).any(axis=0)
+
+      # add to array of images
+      images.append(img[:,ui])
+      damping.append(dmp[ui])
+
+      # next order
+      o += 1
+
+    # add a new source to the source list
+    self.sources.append(SoundSource(position, images=images, \
+        damping=damping, signal=signal))
+
+
   def firstOrderImages(self, source_position):
 
     # projected length onto normal
-    ip = np.sum(self.normals*(self.corners - source_position), axis=1)
+    ip = np.sum(self.normals*(self.corners - source_position[:,np.newaxis]), axis=0)
 
     # projected vector from source to wall
-    d = ip[:,np.newaxis]*self.normals
+    d = ip*self.normals
 
     # compute images points, positivity is to get only the reflections outside the room
-    images = source_position + 2*d[ip > 0,:]
+    images = source_position[:,np.newaxis] + 2*d[:,ip > 0]
 
     # collect absorption factors of reflecting walls
     damping = self.absorption[ip > 0]
@@ -165,14 +179,14 @@ class Room(object):
         max_order = len(source.images)
 
       # stack source and all images
-      img = np.array([source.position])
+      img = np.array([source.position]).T
       dmp = np.array([1.])
       for o in xrange(max_order):
-        img = np.concatenate((img, source.images[o]), axis=0)
-        dmp = np.concatenate((dmp, source.damping[o]), axis=0)
+        img = np.concatenate((img, source.images[o]), axis=1)
+        dmp = np.concatenate((dmp, source.damping[o]))
 
       # compute the distance
-      dist = np.sqrt(np.sum((img - mic[np.newaxis,:])**2, axis=1))
+      dist = np.sqrt(np.sum((img - mic[:,np.newaxis])**2, axis=0))
       time = dist/c + t0
 
       # the minimum length needed is the maximum time of flight multiplied by Fs
@@ -205,7 +219,7 @@ class Room(object):
     '''
 
     # compute room characteristics
-    corners = np.array([[p1[0], p1[1]], [p2[0], p1[1]], [p2[0], p2[1]], [p1[0], p2[1]]])
+    corners = np.array([[p1[0], p2[0], p2[0], p1[0]],[p1[1], p1[1], p2[1], p2[1]]])
 
     return Room(corners, absorption=absorption, max_order=max_order)
 
@@ -213,10 +227,10 @@ class Room(object):
   @classmethod
   def area(cls, corners):
     '''
-    Compute the area of a room represented by its corners
+    Compute the area of a 2D room represented by its corners
     '''
-    x = corners[:,0] - corners[xrange(-1,corners.shape[0]-1),0]
-    y = corners[:,1] + corners[xrange(-1,corners.shape[0]-1),1]
+    x = corners[0,:] - corners[0,xrange(-1,corners.shape[1]-1)]
+    y = corners[1,:] + corners[1,xrange(-1,corners.shape[1]-1)]
     return -0.5*(x*y).sum()
 
 
@@ -239,9 +253,9 @@ class Room(object):
 
     Ref: https://en.wikipedia.org/wiki/Curve_orientation
     '''
-    if (p.shape != (3,2)):
+    if (p.shape != (2,3)):
       raise NameError('Room.ccw3p is for three 2D points, input is 3x2 ndarray')
-    D = (p[1,0]-p[0,0])*(p[2,1]-p[0,1]) - (p[2,0]-p[0,0])*(p[1,1]-p[0,1])
+    D = (p[0,1]-p[0,0])*(p[1,2]-p[1,0]) - (p[0,2]-p[0,0])*(p[1,1]-p[1,0])
     
     if (np.abs(D) < constants.eps):
       return 0

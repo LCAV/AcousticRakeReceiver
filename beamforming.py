@@ -2,6 +2,8 @@ import numpy as np
 import cvxpy as cp
 from time import sleep
 
+import constants
+
 
 #===============================================================================
 # Free (non-class-member) functions related to beamformer design
@@ -56,6 +58,16 @@ def echo_beamformer(A_good, A_bad):
     return np.array(real_to_complex_vector(h.value))
 
 
+def linear2DArray(center, M, phi, d):
+  u = np.array([[np.cos(phi), np.sin(phi)]]).T
+  return np.array(center)[:,np.newaxis] + d*(np.arange(M)[np.newaxis,:] - (M-1.)/2.)*u
+
+
+def circular2DArray(center, M, radius, phi0):
+  phi = np.arange(M)*2.*np.pi/M
+  return np.array(center)[:,np.newaxis] + radius*np.vstack((np.cos(phi+phi0), np.sin(phi+phi0)))
+
+
 def distance(X, Y):
     # Assume X, Y are arrays, *not* matrices
     X = np.array(X)
@@ -81,18 +93,26 @@ class MicrophoneArray(object):
         self.center = np.mean(R, axis=1, keepdims=True)
 
 
+    @classmethod
+    def linear2D(cls, center, M, phi=0.0, d=1.):
+      return MicrophoneArray(linear2Darray(center, M, phi, d))
+
+
+    @classmethod
+    def circular2D(cls, center, M, radius=1., phi0=0.):
+      return MicrophoneArray(circular2DArray(center, M, radius, phi0))
+
+
 class Beamformer(MicrophoneArray):
     """Beamformer class. At some point, in some nice way, the design methods 
     should also go here. Probably with generic arguments."""
 
 
-    def __init__(self, R, sound_speed=343, ffdist=10):
+    def __init__(self, R):
         MicrophoneArray.__init__(self, R)
 
         # 
         self.weights = {} # weigths at different frequencies
-        self.sound_speed = sound_speed
-        self.ffdist = ffdist
 
 
     def steering_vector_2D(self, frequency, phi, dist):
@@ -107,16 +127,27 @@ class Beamformer(MicrophoneArray):
 
         D = distance(self.R, X)
         omega = 2*np.pi*frequency
-        return np.exp(-1j*omega*D/self.sound_speed)
+        return np.exp(-1j*omega*D/constants.c)
 
 
     def response(self, phi_list, frequency):
         # For the moment assume that we are in 2D
 
-        bfresp = np.dot(H(self.weights[frequency]), self.steering_vector_2D(frequency, phi_list, self.ffdist))
+        bfresp = np.dot(H(self.weights[frequency]), self.steering_vector_2D(frequency, phi_list, constants.ffdist))
         return bfresp
 
 
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
+
+
+    @classmethod
+    def linear2D(cls, center, M, phi=0.0, d=1.):
+      return Beamformer(linear2DArray(center, M, phi, d))
+
+
+    @classmethod
+    def circular2D(cls, center, M, radius=1., phi0=0.):
+      return Beamformer(circular2DArray(center, M, radius, phi0))
+
 
