@@ -1,4 +1,3 @@
-
 Room
 ----
 
@@ -6,4 +5,5 @@ Room
 * Blocking walls (convex hull). A corner can be verified as belonging to convex
   hull by checking the ordering of itself and front and back neighbour (clockwise
   vs anticlockwise)
-* Verify if a point is in the polygon or outside
+* Verify if a point is in the polygon or outside (count number of walls intersecting)
+* methods 3D rooms not implemented
