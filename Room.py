@@ -60,7 +60,7 @@ class Room(object):
     self.max_order = max_order
 
 
-  def plot(self, ord=None):
+  def plot(self, img_order=None, freq=None):
 
     import matplotlib
     from matplotlib.patches import Circle, Wedge, Polygon
@@ -77,7 +77,17 @@ class Room(object):
     # draw the microphones
     if (self.micArray is not None):
       for mic in self.micArray.R.T:
-        ax.scatter(mic[0], mic[1], marker='x')
+        ax.scatter(mic[0], mic[1], marker='x', s=10, c='k')
+
+      # draw the beam pattern of the beamformer if requested (and available)
+      if (freq is not None and freq in self.micArray.weights):
+        phis = np.arange(360)*2*np.pi/360.
+        norm = np.linalg.norm((self.corners - self.micArray.center[:,np.newaxis]), axis=0).max()
+        H = np.abs(self.micArray.response(phis, freq))
+        H /= np.abs(H).max()
+        x = np.cos(phis)*H*norm + self.micArray.center[0,0]
+        y = np.sin(phis)*H*norm + self.micArray.center[1,0]
+        ax.plot(x,y,'--')
 
     # define some markers for different sources and colormap for damping
     markers = ['o','s', 'v','.']
@@ -89,9 +99,9 @@ class Room(object):
           marker=markers[i%len(markers)], edgecolor=cmap(1.))
 
       # draw images
-      if (ord == None):
-        ord = self.max_order
-      for o in xrange(ord):
+      if (img_order == None):
+        img_order = self.max_order
+      for o in xrange(img_order):
         # map the damping to a log scale (mapping 1 to 1)
         val = (np.log2(source.damping[o])+10.)/10.
         # plot the images
@@ -174,16 +184,14 @@ class Room(object):
 
     for source in self.sources:
 
-      # use all images available by default
-      if (max_order == None):
-        max_order = len(source.images)
-
       # stack source and all images
-      img = np.array([source.position]).T
-      dmp = np.array([1.])
-      for o in xrange(max_order):
-        img = np.concatenate((img, source.images[o]), axis=1)
-        dmp = np.concatenate((dmp, source.damping[o]))
+      img = source.getImages(max_order)
+      dmg = source.getDamping(max_order)
+      #img = np.array([source.position]).T
+      #dmp = np.array([1.])
+      #for o in xrange(max_order):
+        #img = np.concatenate((img, source.images[o]), axis=1)
+        #dmp = np.concatenate((dmp, source.damping[o]))
 
       # compute the distance
       dist = np.sqrt(np.sum((img - mic[:,np.newaxis])**2, axis=0))

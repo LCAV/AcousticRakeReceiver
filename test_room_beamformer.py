@@ -17,24 +17,20 @@ absorption = 0.8
 max_order = 4
 
 # create a microphone array
-mics = bf.Beamformer.linear2D(mic1, 4, d=0.05, phi=np.pi/6.)
+M = 10
+d = 0.05
+f = 1000.
+phi = -np.pi/3
+mics = bf.Beamformer.circular2D(mic1, M, radius=0.05)
 
 # create the room
 room1 = rg.Room.shoeBox2D(p1, p2, max_order=max_order, absorption=absorption)
 room1.addSource(source1)
 room1.addSource(source2)
+
+mics.echoBeamformerWeights(room1.sources[0].getImages(max_order=1),room1.sources[1].getImages(max_order=1), f)
+
 room1.addMicrophoneArray(mics)
-fig, ax = room1.plot()
-
-# set t0 so that decay of sinc band-pass filter is less than tol at t=0
-tol = 1e-5
-t0 = 1./(tol*Fs)
-
-# compute room impulse response for mic1
-RIRs = room1.impulseResponse(mic1, Fs, t0=0.3)
-plt.figure()
-for i,h in enumerate(RIRs):
-  plt.subplot(len(RIRs),1,i+1)
-  plt.plot(np.arange(len(h))/float(Fs), np.real(h))
+fig, ax = room1.plot(freq=f, img_order=1)
 
 plt.show()
