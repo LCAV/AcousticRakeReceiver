@@ -117,6 +117,11 @@ class Beamformer(MicrophoneArray):
         self.weights = {} # weigths at different frequencies
 
 
+    def __add__(self, y):
+
+       return Beamformer(np.concatenate((self.R, y.R), axis=1)) 
+
+
     def steering_vector_2D(self, frequency, phi, dist):
 
         phi = np.array([phi]).reshape(phi.size)

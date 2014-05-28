@@ -17,12 +17,11 @@ absorption = 0.8
 max_order = 4
 
 # create a microphone array
-M = 50
+M = 5
 d = 0.1
 f = 1000.
 phi = -np.pi/3
-#mics = bf.Beamformer.linear2D(mic1, M, d=d)
-mics = bf.Beamformer.circular2D(mic1, M, radius=0.1)
+mics = bf.Beamformer.linear2D(mic1, M, d=d) + bf.Beamformer.linear2D(mic1, 4, d=d, phi=np.pi/2)
 
 # create the room
 room1 = rg.Room.shoeBox2D(p1, p2, max_order=max_order, absorption=absorption)
