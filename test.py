@@ -19,7 +19,7 @@ bf = Beamformer(R)
 # print bf.steering_vector_2D(np.array([1000]), np.array([0,np.pi/2]), np.array([10,10]))
 
 A_good = bf.steering_vector_2D(np.array([1000]), np.array([0]), np.array([10]))
-A_bad = bf.steering_vector_2D(np.array([1000]), np.array([1]), np.array([10]))
+A_bad = bf.steering_vector_2D(np.array([1000]), np.array([1, 2]), np.array([10, 10]))
 
 bf.add_weights([1000], [echo_beamformer(A_good, A_bad)])
 
@@ -32,3 +32,5 @@ print 'bfresp'
 bfresp = bf.response(phi_list, 1000)
 plt.plot(phi_list, np.abs(bfresp)[0,:])
 plt.show()
+
+print 
