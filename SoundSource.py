@@ -40,8 +40,34 @@ class SoundSource(object):
     # The sound signal of the source
     self.signal = signal
 
+
   def addSignal(signal):
 
     self.signal = signal
+
+
+  def getImages(self, max_order=None):
+
+    if (max_order is None):
+      max_order = len(images)
+      
+    # stack source and all images
+    img = np.array([self.position]).T
+    for o in xrange(max_order):
+      img = np.concatenate((img, self.images[o]), axis=1)
+
+    return img
+
+  def getDamping(self, max_order=None):
+    if (max_order is None):
+      max_order = len(images)
+      
+    # stack source and all images
+    dmp = np.array([1.])
+    for o in xrange(max_order):
+      dmp = np.concatenate((dmp, self.damping[o]))
+
+    return dmp
+
 
 

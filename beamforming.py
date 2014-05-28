@@ -58,16 +58,6 @@ def echo_beamformer(A_good, A_bad):
     return np.array(real_to_complex_vector(h.value))
 
 
-def linear2DArray(center, M, phi, d):
-  u = np.array([[np.cos(phi), np.sin(phi)]]).T
-  return np.array(center)[:,np.newaxis] + d*(np.arange(M)[np.newaxis,:] - (M-1.)/2.)*u
-
-
-def circular2DArray(center, M, radius, phi0):
-  phi = np.arange(M)*2.*np.pi/M
-  return np.array(center)[:,np.newaxis] + radius*np.vstack((np.cos(phi+phi0), np.sin(phi+phi0)))
-
-
 def distance(X, Y):
     # Assume X, Y are arrays, *not* matrices
     X = np.array(X)
@@ -76,6 +66,19 @@ def distance(X, Y):
     XX, YY = [np.sum(A**2, axis=0, keepdims=True) for A in X, Y]
 
     return np.sqrt(np.abs((XX.T + YY) - 2*np.dot(X.T, Y)))
+
+def unit_vec2D(phi):
+    return np.array([[np.cos(phi), np.sin(phi)]]).T
+
+
+def linear2DArray(center, M, phi, d):
+  u = unit_vec2D(phi)
+  return np.array(center)[:,np.newaxis] + d*(np.arange(M)[np.newaxis,:] - (M-1.)/2.)*u
+
+
+def circular2DArray(center, M, radius, phi0):
+  phi = np.arange(M)*2.*np.pi/M
+  return np.array(center)[:,np.newaxis] + radius*np.vstack((np.cos(phi+phi0), np.sin(phi+phi0)))
 
 
 #===============================================================================
@@ -122,20 +125,47 @@ class Beamformer(MicrophoneArray):
         # Assume phi and dist are measured from the array's center
         X = dist * np.array([np.cos(phi), np.sin(phi)]) + self.center
 
-        # print np.array([np.cos(phi), np.sin(phi)])
-        # sleep(1)
-
         D = distance(self.R, X)
         omega = 2*np.pi*frequency
         return np.exp(-1j*omega*D/constants.c)
 
 
+    def steering_vector_2D_from_point(self, frequency, source):
+
+        phi = np.angle(source[0]+1j*source[1])
+
+        return self.steering_vector_2D(frequency, phi, constants.ffdist)
+
+
     def response(self, phi_list, frequency):
         # For the moment assume that we are in 2D
-
         bfresp = np.dot(H(self.weights[frequency]), self.steering_vector_2D(frequency, phi_list, constants.ffdist))
         return bfresp
 
+
+    def farFieldWeights(self, phi, f):
+      if (np.rank(f) == 0):
+        f = np.array([f])
+      else:
+        f = np.array(f)
+      u = unit_vec2D(phi)
+      proj = np.dot(u.T, self.R - self.center)[0]
+      proj -= proj.max()
+      w = np.exp(-2j*np.pi*f[:,np.newaxis]*proj)
+      self.weights.update(zip(f, w))
+
+
+    def echoBeamformerWeights(self, source, interferer, frequencies):
+      if (np.rank(frequencies) == 0):
+        frequencies = np.array([frequencies])
+
+      for f in frequencies:
+
+        A_good = self.steering_vector_2D_from_point(f, source)
+        A_bad = self.steering_vector_2D_from_point(f, interferer)
+        w = echo_beamformer(A_good, A_bad)
+
+        self.weights.update(zip(f, w))
 
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
