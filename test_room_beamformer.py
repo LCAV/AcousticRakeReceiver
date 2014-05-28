@@ -17,20 +17,20 @@ absorption = 0.8
 max_order = 4
 
 # create a microphone array
-M = 10
-d = 0.05
+M = 50
+d = 0.1
 f = 1000.
 phi = -np.pi/3
-mics = bf.Beamformer.circular2D(mic1, M, radius=0.05)
+#mics = bf.Beamformer.linear2D(mic1, M, d=d)
+mics = bf.Beamformer.circular2D(mic1, M, radius=0.1)
 
 # create the room
 room1 = rg.Room.shoeBox2D(p1, p2, max_order=max_order, absorption=absorption)
 room1.addSource(source1)
 room1.addSource(source2)
+room1.addMicrophoneArray(mics)
 
 mics.echoBeamformerWeights(room1.sources[0].getImages(max_order=1),room1.sources[1].getImages(max_order=1), f)
-
-room1.addMicrophoneArray(mics)
-fig, ax = room1.plot(freq=f, img_order=1)
+room1.plot(freq=f, img_order=1)
 
 plt.show()

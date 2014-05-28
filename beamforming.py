@@ -45,12 +45,11 @@ def echo_beamformer(A_good, A_bad):
 
     # Objective: minimize(norm(h.H * A_good)^2)
  
-
-    objective = cp.Minimize(sum(cp.square(A_bad_ctr_H * h)))
+    objective = cp.Minimize(cp.sum_entries(cp.square(A_bad_ctr_H * h)))
 
     # Constraint: sum(h.H * A_good) = 1 + 0*1j
-    constraints = [sum((A_good_ctr_H*h)[0:K]) == 1, 
-                   sum((A_good_ctr_H*h)[K:]) == 0]
+    constraints = [cp.sum_entries((A_good_ctr_H*h)[0:K]) == 1, 
+                   cp.sum_entries((A_good_ctr_H*h)[K:]) == 0]
 
     problem = cp.Problem(objective, constraints)
     problem.solve()
@@ -132,7 +131,7 @@ class Beamformer(MicrophoneArray):
 
     def steering_vector_2D_from_point(self, frequency, source):
 
-        phi = np.angle(source[0]+1j*source[1])
+        phi = np.angle((source[0]-self.center[0,0]) + 1j*(source[1]-self.center[1,0]))
 
         return self.steering_vector_2D(frequency, phi, constants.ffdist)
 
@@ -151,8 +150,8 @@ class Beamformer(MicrophoneArray):
       u = unit_vec2D(phi)
       proj = np.dot(u.T, self.R - self.center)[0]
       proj -= proj.max()
-      w = np.exp(-2j*np.pi*f[:,np.newaxis]*proj)
-      self.weights.update(zip(f, w))
+      w = np.exp(2j*np.pi*f[:,np.newaxis]*proj/constants.c)
+      self.weights.update(zip(f, w[:,:,np.newaxis]))
 
 
     def echoBeamformerWeights(self, source, interferer, frequencies):
@@ -165,7 +164,8 @@ class Beamformer(MicrophoneArray):
         A_bad = self.steering_vector_2D_from_point(f, interferer)
         w = echo_beamformer(A_good, A_bad)
 
-        self.weights.update(zip(f, w))
+        self.weights.update({f: w})
+
 
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
