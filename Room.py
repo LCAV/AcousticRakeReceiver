@@ -12,7 +12,7 @@ A room geometry is defined by all the source and all its images
 
 class Room(object):
 
-  def __init__(self, corners, absorption=1., max_order=1, sources=None, mics=None):
+  def __init__(self, corners, Fs, t0=0., absorption=1., max_order=1, sources=None, mics=None):
 
     # make sure we have an ndarray of the right size
     corners = np.array(corners)
@@ -25,6 +25,10 @@ class Room(object):
 
     self.corners = corners
     self.dim = corners.shape[0]
+
+    # sampling frequency and time offset
+    self.Fs = Fs
+    self.t0 = t0
 
     # circular wall vectors (counter clockwise)
     self.walls = self.corners - self.corners[:,xrange(-1,corners.shape[1]-1)]
@@ -59,6 +63,12 @@ class Room(object):
     # a maximum orders for image source computation
     self.max_order = max_order
 
+    # pre-compute RIR if needed
+    if (len(self.sources) > 0 and self.micArray is not None):
+      self.compute_RIR()
+    else:
+      self.rir = []
+
 
   def plot(self, img_order=None, freq=None):
 
@@ -88,7 +98,7 @@ class Room(object):
         x = np.cos(phis)*H*norm + self.micArray.center[0,0]
         y = np.sin(phis)*H*norm + self.micArray.center[1,0]
         ax.plot(x,y,'--')
-      elif (freq not in self.micArray.weights):
+      elif (freq is not None and freq not in self.micArray.weights):
         print 'Frequency not in weights dictionary.'
 
     # define some markers for different sources and colormap for damping
@@ -121,7 +131,7 @@ class Room(object):
     self.micArray = micArray
 
 
-  def addSource(self, position, signal=None):
+  def addSource(self, position, signal=None, delay=0):
 
     # generate first order images
     i,d = self.firstOrderImages(np.array(position))
@@ -156,7 +166,7 @@ class Room(object):
 
     # add a new source to the source list
     self.sources.append(SoundSource(position, images=images, \
-        damping=damping, signal=signal))
+        damping=damping, signal=signal, delay=delay))
 
 
   def firstOrderImages(self, source_position):
@@ -176,50 +186,91 @@ class Room(object):
     return images, damping
 
 
-  def impulseResponse(self, mic_pos, Fs, t0=0., max_order=None, c=constants.c, window=False):
+  def compute_RIR(self, c=constants.c, window=False):
     '''
-    Return sampled room impulse response based on images list
+    Compute the room impulse response between every source and microphone
+    '''
+    self.rir = []
+
+    for mic in self.micArray.R.T:
+
+      h = []
+
+      for source in self.sources:
+
+        # stack source and all images
+        img = source.getImages(self.max_order)
+        dmp = source.getDamping(self.max_order)
+
+        # compute the distance
+        dist = np.sqrt(np.sum((img - mic[:,np.newaxis])**2, axis=0))
+        time = dist/c + self.t0
+
+        # the minimum length needed is the maximum time of flight multiplied by Fs
+        # make it twice that amount to minimize aliasing
+        N = 1.1*np.ceil(time.max()*self.Fs)
+
+        # compute the discrete band-limited spectrum
+        index = np.arange(0, N/2+1)
+        F = np.exp(-2j*np.pi*index[:,np.newaxis]*time[np.newaxis,:]*float(self.Fs)/N)
+        H = np.dot(F, dmp/(4*np.pi*dist))
+
+        # window if required
+        if (window == True):
+          H *= np.hanning(N+1)[N/2:]
+
+        # inverse the spectrum to get the band-limited impulse response
+        h.append(np.fft.irfft(H))
+
+      self.rir.append(h)
+
+
+  def simulate(self, recompute_rir=False):
+    '''
+    Simulate the microphone signal at every microphone in the array
     '''
 
-    mic = np.array(mic_pos)
-    h = []
+    # import convolution routine
+    from scipy.signal import fftconvolve
 
-    for source in self.sources:
+    # Throw an error if we are missing some hardware in the room
+    if (len(self.sources) is 0):
+      raise NameError('There are no sound sources in the room.')
+    if (self.micArray is None):
+      raise NameError('There is no microphone in the room.')
 
-      # stack source and all images
-      img = source.getImages(max_order)
-      dmg = source.getDamping(max_order)
-      #img = np.array([source.position]).T
-      #dmp = np.array([1.])
-      #for o in xrange(max_order):
-        #img = np.concatenate((img, source.images[o]), axis=1)
-        #dmp = np.concatenate((dmp, source.damping[o]))
+    # compute RIR if necessary
+    if len(self.rir) == 0 or recompute_rir:
+      self.compute_RIR()
 
-      # compute the distance
-      dist = np.sqrt(np.sum((img - mic[:,np.newaxis])**2, axis=0))
-      time = dist/c + t0
+    # number of mics and sources
+    M = self.micArray.M
+    S = len(self.sources)
 
-      # the minimum length needed is the maximum time of flight multiplied by Fs
-      # make it twice that amount to minimize aliasing
-      N = 2*np.ceil(time.max()*Fs)
+    # compute the maximum signal length
+    from itertools import product
+    max_len_rir = np.array([len(self.rir[i][j]) for i,j in product(xrange(M), xrange(S))]).max()
+    f = lambda i: len(self.sources[i].signal)+np.floor(self.sources[i].delay*self.Fs)
+    max_sig_len = np.array([f(i) for i in xrange(S)]).max()
+    L = max_len_rir + max_sig_len - 1
 
-      # compute the discrete band-limited spectrum
-      index = np.arange(0, N/2+1)
-      F = np.exp(-2j*np.pi*index[:,np.newaxis]*time[np.newaxis,:]*float(Fs)/N)
-      H = np.dot(F, dmp/(4*np.pi*dist))
+    # the array that will receive all the signals
+    self.micArray.signals = np.zeros((M, L))
 
-      # window if required
-      if (window == True):
-        H *= np.hanning(N+1)[N/2:]
-
-      # inverse the spectrum to get the band-limited impulse response
-      h.append(np.fft.irfft(H))
-
-    return h
+    # compute the signal at every microphone in the array
+    for m in np.arange(M):
+      rx = self.micArray.signals[m]
+      for s in np.arange(S):
+        sig = self.sources[s].signal
+        if sig is None:
+          continue
+        d = np.floor(self.sources[s].delay*self.Fs)
+        h = self.rir[m][s]
+        rx[d:d+len(sig)+len(h)-1] += fftconvolve(h, sig)
 
 
   @classmethod
-  def shoeBox2D(cls, p1, p2, max_order=1, absorption=1.):
+  def shoeBox2D(cls, p1, p2, Fs, max_order=1, absorption=1.):
     '''
     Create a new Shoe Box room geometry.
     Arguments:
@@ -231,7 +282,7 @@ class Room(object):
     # compute room characteristics
     corners = np.array([[p1[0], p2[0], p2[0], p1[0]],[p1[1], p1[1], p2[1], p2[1]]])
 
-    return Room(corners, absorption=absorption, max_order=max_order)
+    return Room(corners, Fs, absorption=absorption, max_order=max_order)
 
 
   @classmethod

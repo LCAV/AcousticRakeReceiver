@@ -92,7 +92,18 @@ class MicrophoneArray(object):
         self.M = R.shape[1]   # number of microphones
         self.R = R            # array geometry
 
+        self.signals = None
+
         self.center = np.mean(R, axis=1, keepdims=True)
+
+
+    def to_wav(self, filename, Fs):
+      '''
+      Save all the signals to wav files
+      '''
+      from scipy.io import wavfile
+      scaled = np.array(self.signals.T, dtype=np.int16)
+      wavfile.write(filename, Fs, scaled)
 
 
     @classmethod
@@ -148,6 +159,11 @@ class Beamformer(MicrophoneArray):
 
 
     def farFieldWeights(self, phi, f):
+      '''
+      This method computes weight for a far field at infinity
+      phi: direction of beam
+      f:   frequencies (scalar, or array)
+      '''
       if (np.rank(f) == 0):
         f = np.array([f])
       else:
@@ -160,6 +176,13 @@ class Beamformer(MicrophoneArray):
 
 
     def echoBeamformerWeights(self, source, interferer, frequencies):
+      '''
+      This method computes a beamformer focusing on a number of specific sources
+      and ignoring a number of interferers
+      source: source locations
+      interferer: interferers locations
+      frequencies: frequencies
+      '''
       if (np.rank(frequencies) == 0):
         frequencies = np.array([frequencies])
 
@@ -174,6 +197,12 @@ class Beamformer(MicrophoneArray):
 
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
+
+
+    def frequencyDomainProcessing(self):
+        
+      # smth
+      return
 
 
     @classmethod

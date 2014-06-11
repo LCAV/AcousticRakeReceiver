@@ -7,7 +7,7 @@ A class to represent sound sources
 
 class SoundSource(object):
 
-  def __init__(self, position, images=None, damping=None, signal=None):
+  def __init__(self, position, images=None, damping=None, signal=None, delay=0):
 
     self.position = np.array(position)
 
@@ -39,6 +39,7 @@ class SoundSource(object):
 
     # The sound signal of the source
     self.signal = signal
+    self.delay = delay
 
 
   def addSignal(signal):
