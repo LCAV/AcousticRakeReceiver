@@ -59,10 +59,12 @@ def echo_beamformer_cvx(A_good, A_bad):
 def echo_beamformer(A_good, A_bad):
 
     # Use the fact that this is just MaxSINR with a particular covariance
-    # matrix, and a particular steering vector
+    # matrix, and a particular steering vector. TODO: For more microphones
+    # than steering vectors, K is rank-deficient. Is the solution still fine?
+    # The answer seems to be yes.
 
     a = np.sum(A_good, axis=1, keepdims=1)
-    K_inv = np.linalg.inv(A_bad.dot(H(A_bad)))
+    K_inv = np.linalg.pinv(A_bad.dot(H(A_bad)))
     return K_inv.dot(a) / ( H(a).dot(K_inv.dot(a)) )
 
 def distance(X, Y):
