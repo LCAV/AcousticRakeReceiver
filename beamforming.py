@@ -4,6 +4,9 @@ from time import sleep
 
 import constants
 
+import windows
+import stft
+
 
 #===============================================================================
 # Free (non-class-member) functions related to beamformer design
@@ -199,10 +202,44 @@ class Beamformer(MicrophoneArray):
         self.weights.update(zip(new_frequency_list, new_weights))
 
 
-    def frequencyDomainProcessing(self):
+    def frequencyDomainEchoBeamforming(self, source, interferer, Fs, L, hop, zpb=0, zpf=0):
+
+      if (self.signals == None or len(self.signals) == 0):
+        raise NameError('No signal to beamform')
+
+      # transform length
+      N = L + zpb + zpf
+
+      # check that N is an even number
+      if (N % 2 is not 0):
+        raise NameError('FFT length needs to be even.')
+
+      # STFT bins mid-frequencies 
+      f = 2*np.pi*np.arange(0, N/2+1)/float(N)*float(Fs)
+
+      # calculate the beamformer weights
+      self.echoBeamformerWeights(source, interferer, f)
+
+      # XXX We force the weight for folding frequency to be real to enforce real fft XXX
+      self.weights[f[-1]] = np.real(self.weights[f[-1]])
+
+      # put the weights in an array for convenience
+      w = np.array(self.weights.values())
+      w = np.squeeze(w, axis=2).T
+
+      win = np.concatenate((np.zeros(zpf), windows.hann(L), np.zeros(zpb)))
+
+      # do real STFT of first signal
+      tfd_sig = stft.stft(self.signals[0], L, hop, zp_back=zpb, zp_front=zpf, \
+          transform=np.fft.rfft, win=win)*np.conj(w[0])
+      for i in xrange(1,len(self.signals)):
+        tfd_sig += stft.stft(self.signals[i], L, hop, zp_back=zpb, zp_front=zpf, \
+          transform=np.fft.rfft, win=win)*np.conj(w[i])
+
+      #  now reconstruct the signal
+      output = stft.istft(tfd_sig, L, hop, zp_back=zpb, zp_front=zpf, transform=np.fft.irfft)
         
-      # smth
-      return
+      return output
 
 
     @classmethod

@@ -7,3 +7,6 @@ Room
   vs anticlockwise)
 * Verify if a point is in the polygon or outside (count number of walls intersecting)
 * methods 3D rooms not implemented
+* Add a 'signal' class that has all the parameters of the signal (sampling
+   rate, etc). If possible, have this class extend ndarray so that we can use
+   all the standard routines on them. We just want a few extra attributes.
