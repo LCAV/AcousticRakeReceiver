@@ -24,7 +24,7 @@ def complex_to_real_matrix(A):
     A_imag = np.imag(A)
 
     A_ctr = np.vstack([np.hstack([A_real, -A_imag]),
-                       np.hstack([A_imag, A_real])])
+                       np.hstack([A_imag,  A_real])])
 
     return A_ctr
 
@@ -35,7 +35,7 @@ def real_to_complex_vector(b):
     return b[0:n] + 1j*b[n:]
 
 
-def echo_beamformer(A_good, A_bad):
+def echo_beamformer_cvx(A_good, A_bad):
 
     # Expand complex matrices and vectors to real matrices and vectors
     A_good_ctr_H = complex_to_real_matrix(H(A_good))
@@ -59,6 +59,16 @@ def echo_beamformer(A_good, A_bad):
 
     return np.array(real_to_complex_vector(h.value))
 
+def echo_beamformer(A_good, A_bad):
+
+    # Use the fact that this is just MaxSINR with a particular covariance
+    # matrix, and a particular steering vector. TODO: For more microphones
+    # than steering vectors, K is rank-deficient. Is the solution still fine?
+    # The answer seems to be yes.
+
+    a = np.sum(A_good, axis=1, keepdims=1)
+    K_inv = np.linalg.pinv(A_bad.dot(H(A_bad)))
+    return K_inv.dot(a) / ( H(a).dot(K_inv.dot(a)) )
 
 def distance(X, Y):
     # Assume X, Y are arrays, *not* matrices
@@ -74,13 +84,36 @@ def unit_vec2D(phi):
 
 
 def linear2DArray(center, M, phi, d):
-  u = unit_vec2D(phi)
-  return np.array(center)[:,np.newaxis] + d*(np.arange(M)[np.newaxis,:] - (M-1.)/2.)*u
+    u = unit_vec2D(phi)
+    return np.array(center)[:,np.newaxis] + d*(np.arange(M)[np.newaxis,:] - (M-1.)/2.)*u
 
 
 def circular2DArray(center, M, radius, phi0):
-  phi = np.arange(M)*2.*np.pi/M
-  return np.array(center)[:,np.newaxis] + radius*np.vstack((np.cos(phi+phi0), np.sin(phi+phi0)))
+    phi = np.arange(M)*2.*np.pi/M
+    return np.array(center)[:,np.newaxis] + radius*np.vstack((np.cos(phi+phi0), np.sin(phi+phi0)))
+
+
+def fir_approximation_ls(weights, T, n1, n2):
+
+    freqs_plus = np.array(weights.keys())[:,np.newaxis]
+    freqs = np.vstack([freqs_plus, 
+                      -freqs_plus])
+    omega = 2*np.pi*freqs
+    omega_discrete = omega * T
+
+    n = np.arange(n1, n2)
+
+    # Create the DTFT transform matrix corresponding to a discrete set of
+    # frequencies and the FIR filter indices
+    F = np.exp(-1j*omega_discrete*n)
+    print np.linalg.pinv(F)
+
+    w_plus = np.array(weights.values())[:,:,0]
+    w = np.vstack([w_plus, 
+                   w_plus.conj()])
+
+    return np.linalg.pinv(F).dot(w)
+
 
 
 #===============================================================================
@@ -145,6 +178,7 @@ class Beamformer(MicrophoneArray):
 
         D = distance(self.R, X)
         omega = 2*np.pi*frequency
+
         return np.exp(-1j*omega*D/constants.c)
 
 
@@ -195,8 +229,9 @@ class Beamformer(MicrophoneArray):
         A_bad = self.steering_vector_2D_from_point(f, interferer)
         w = echo_beamformer(A_good, A_bad)
 
-        self.weights.update({f: w})
+        # print np.linalg.norm(A_good[:,0]), np.linalg.norm(np.sum(A_good, axis=1))
 
+        self.weights.update({f: w})
 
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
@@ -250,5 +285,3 @@ class Beamformer(MicrophoneArray):
     @classmethod
     def circular2D(cls, center, M, radius=1., phi0=0.):
       return Beamformer(circular2DArray(center, M, radius, phi0))
-
-
