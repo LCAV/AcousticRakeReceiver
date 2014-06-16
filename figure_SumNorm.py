@@ -28,21 +28,31 @@ n_monte_carlo = 50
 
 SNR_gain = np.zeros(frequencies.shape)
 for i, f in enumerate(frequencies):
-	print 'Simulating for the frequency', f
-	for n in range(0, n_monte_carlo):
+    print 'Simulating for the frequency', f
+    for n in range(0, n_monte_carlo):
 
-		# Generate a source at a random location. TO DO: Add a bounding box for sources!
-		source1 = p1 + np.random.rand(2) * (p2 - p1)
+        # Generate a source at a random location. TO DO: Add a bounding box for
+        # sources!
+        source1 = p1 + np.random.rand(2) * (p2 - p1)
 
-		# Create the room
-		room1 = rg.Room.shoeBox2D(p1, p2, max_order=max_order, absorption=absorption)
-		room1.addSource(source1)
-		room1.addMicrophoneArray(mics)
+        # Create the room
+        room1 = rg.Room.shoeBox2D(
+            p1,
+            p2,
+            max_order=max_order,
+            absorption=absorption)
+        room1.addSource(source1)
+        room1.addMicrophoneArray(mics)
 
-		A = mics.steering_vector_2D_from_point(f, room1.sources[0].getImages(max_order=2), attn=True)
-		SNR_gain[i] += np.linalg.norm(np.sum(A, axis=1))**2 / np.linalg.norm(A[:,0])**2
+        A = mics.steering_vector_2D_from_point(
+            f,
+            room1.sources[0].getImages(
+                max_order=2),
+            attn=True)
+        SNR_gain[
+            i] += np.linalg.norm(np.sum(A, axis=1)) ** 2 / np.linalg.norm(A[:, 0]) ** 2
 
-	SNR_gain[i] /= n_monte_carlo
+    SNR_gain[i] /= n_monte_carlo
 
 
 # Plot the results

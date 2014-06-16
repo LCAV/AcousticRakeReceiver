@@ -9,7 +9,7 @@ import Room as rg
 p1 = [-1, 0]
 p2 = [5, 4]
 source1 = [0.5, 1.5]
-source2 = [3,3]
+source2 = [3, 3]
 mic1 = [2, 3]
 Fs = 44000
 absorption = 0.8
@@ -24,18 +24,18 @@ ax.scatter(mic1[0], mic1[1], marker='x')
 
 # set t0 so that decay of sinc band-pass filter is less than tol at t=0
 tol = 1e-5
-t0 = 1./(tol*Fs)
+t0 = 1. / (tol * Fs)
 
 # compute room impulse response for mic1
 RIRs = room1.impulseResponse(mic1, Fs, t0=0.3)
 plt.figure()
-for i,h in enumerate(RIRs):
-  plt.subplot(len(RIRs),1,i+1)
-  plt.plot(np.arange(len(h))/float(Fs), np.real(h))
+for i, h in enumerate(RIRs):
+    plt.subplot(len(RIRs), 1, i + 1)
+    plt.plot(np.arange(len(h)) / float(Fs), np.real(h))
 
 # room 2 : convex polygon
-source2 = [3,3]
-corners = np.array([[0,0],[4,0],[6,4],[3,7],[-1,6]]).T
+source2 = [3, 3]
+corners = np.array([[0, 0], [4, 0], [6, 4], [3, 7], [-1, 6]]).T
 absorption = [0.5, 0.6, 0.45, 0.75, 0.63]
 max_order = 7
 

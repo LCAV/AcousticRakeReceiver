@@ -50,8 +50,8 @@ mic1 = [2, 1.5]
 M = 9
 d = 0.03
 phi = -np.pi / 3
-mics = bf.Beamformer.linear2D(mic1, M, d=d, phi=phi)
-#mics = bf.Beamformer.circular2D(mic1, M, radius=d*M/2./np.pi, phi=phi)
+#mics = bf.Beamformer.linear2D(mic1, M, d=d, phi=phi)
+mics = bf.Beamformer.circular2D(mic1, M, radius=d*M/2./np.pi, phi=phi)
 
 # create the room with sources and mics
 room1 = rg.Room.shoeBox2D(
@@ -77,16 +77,18 @@ mics.to_wav('raw_output.wav', Fs)
 max_order = 1
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-L = 256
-hop = 128
-zp = int(0.5 * Fs - L)
-#N = L + 2*zp
+L = 128
+hop = 64
+zp = 64
+N = L + 2*zp
 
-#processed = mics.frequencyDomainEchoBeamforming(good_source, bad_source, Fs, L, hop, zpb=zp, zpf=zp)
+processed = mics.frequencyDomainEchoBeamforming(good_source, bad_source, Fs, L, hop, zpb=zp, zpf=zp)
 
-N = 0.5 * Fs
-N += N % 2
-processed = mics.timeDomainEchoBeamforming(good_source, bad_source, Fs, N)
+#N = 0.5 * Fs
+#N += N % 2
+#processed = mics.timeDomainEchoBeamforming(good_source, bad_source, Fs, N)
+
+# clip the signal over 16 bit precision
 clipped = u.clip(processed, 2 ** 15 - 1, -2 ** 15)
 
 input_signal = mics.signals[mics.M / 2]
