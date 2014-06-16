@@ -41,23 +41,29 @@ def overlap_add(in1, in2, L):
 
 
 # Nicely plot the spectrogram
-def spectroplot(Z, N, L, D, Fs, fdiv, tdiv):
+def spectroplot(Z, N, L, D, Fs, fdiv=None, tdiv=None):
 
-  plt.imshow(10*np.log10(np.abs(Z[:N/2+1,:])))
+  plt.imshow(10*np.log10(np.abs(Z[:N/2+1,:])), aspect='auto', origin='lower')
 
   # label y axis correctly
-  tick_lbls = np.arange(0, Fs/2, fdiv)
-  tick_locs = tick_lbls*N/Fs
-  plt.yticks(tick_locs, tick_lbls)
   plt.ylabel('Freq [Hz]')
+  yticks = plt.getp(plt.gca(), 'yticks')
+  plt.setp(plt.gca(), 'yticklabels', np.round(yticks/float(N)*Fs))
+  if (fdiv is not None):
+    tick_lbls = np.arange(0, Fs/2, fdiv)
+    tick_locs = tick_lbls*N/Fs
+    plt.yticks(tick_locs, tick_lbls)
 
   # label x axis correctly
-  unit = float(L)/Fs
-  length = unit*Z.shape[1]
-  tick_lbls = np.arange(0, int(length), tdiv)
-  tick_locs = tick_lbls*Fs/L
-  plt.xticks(tick_locs, tick_lbls)
   plt.xlabel('Time [s]')
+  xticks = plt.getp(plt.gca(), 'xticks')
+  plt.setp(plt.gca(), 'xticklabels', xticks/float(Fs)*L)
+  if (tdiv is not None):
+    unit = float(L)/Fs
+    length = unit*Z.shape[1]
+    tick_lbls = np.arange(0, int(length), tdiv)
+    tick_locs = tick_lbls*Fs/L
+    plt.xticks(tick_locs, tick_lbls)
 
   plt.colorbar()
 

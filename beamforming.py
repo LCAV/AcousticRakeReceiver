@@ -59,7 +59,7 @@ def echo_beamformer_cvx(A_good, A_bad):
 
     return np.array(real_to_complex_vector(h.value))
 
-def echo_beamformer(A_good, A_bad):
+def echo_beamformer(A_good, A_bad, rcond=1e-15):
 
     # Use the fact that this is just MaxSINR with a particular covariance
     # matrix, and a particular steering vector. TODO: For more microphones
@@ -67,7 +67,7 @@ def echo_beamformer(A_good, A_bad):
     # The answer seems to be yes.
 
     a = np.sum(A_good, axis=1, keepdims=1)
-    K_inv = np.linalg.pinv(A_bad.dot(H(A_bad)))
+    K_inv = np.linalg.pinv(A_bad.dot(H(A_bad)) + rcond*np.eye(A_good.shape[0]))
     return K_inv.dot(a) / ( H(a).dot(K_inv.dot(a)) )
 
 def distance(X, Y):
@@ -148,8 +148,8 @@ class MicrophoneArray(object):
 
 
     @classmethod
-    def circular2D(cls, center, M, radius=1., phi0=0.):
-      return MicrophoneArray(circular2DArray(center, M, radius, phi0))
+    def circular2D(cls, center, M, radius=1., phi=0.):
+      return MicrophoneArray(circular2DArray(center, M, radius, phi))
 
 
 class Beamformer(MicrophoneArray):
@@ -250,7 +250,7 @@ class Beamformer(MicrophoneArray):
         raise NameError('FFT length needs to be even.')
 
       # STFT bins mid-frequencies 
-      f = 2*np.pi*np.arange(0, N/2+1)/float(N)*float(Fs)
+      f = np.arange(0, N/2+1)/float(N)*float(Fs)
 
       # calculate the beamformer weights
       self.echoBeamformerWeights(source, interferer, f)
@@ -277,11 +277,55 @@ class Beamformer(MicrophoneArray):
       return output
 
 
+    def timeDomainEchoBeamforming(self, source, interferer, Fs, N):
+
+      if (self.signals == None or len(self.signals) == 0):
+        raise NameError('No signal to beamform')
+
+      # STFT bins mid-frequencies 
+      f = np.arange(0, float(N)/2.+1)/float(N)*float(Fs)
+
+      # calculate the beamformer weights
+      self.echoBeamformerWeights(source, interferer, f)
+
+      # put the weights in an array for convenience
+      w = np.zeros((self.M, float(N)/2+1), dtype=complex)
+      for n in np.arange(0, N/2.+1):
+        freq = n/float(N)*float(Fs)
+
+        A_good = self.steering_vector_2D_from_point(freq, source)
+        A_bad = self.steering_vector_2D_from_point(freq, interferer)
+        w[:,n] = echo_beamformer(A_good, A_bad, rcond=1e-3)[:,0]
+
+      # XXX We force the weight for folding frequency to be real to enforce real fft XXX
+      self.weights[0] = np.real(self.weights[0])
+      self.weights[f[-1]] = np.real(self.weights[f[-1]])
+
+      # go back to time domain and shift 0 to center
+      tw = np.fft.irfft(np.conj(w), axis=1)
+      tw = np.concatenate((tw[:,N/2:], tw[:,:N/2]), axis=1)
+
+      import matplotlib.pyplot as plt
+      plt.subplot(2,1,1)
+      plt.plot(f, np.abs(w.T))
+      plt.subplot(2,1,2)
+      plt.plot(tw.T)
+
+      from scipy.signal import fftconvolve
+
+      # do real STFT of first signal
+      output = np.convolve(tw[0], self.signals[0])
+      for i in xrange(1,len(self.signals)):
+        output += np.convolve(tw[i], self.signals[i])
+
+      return output
+
+
     @classmethod
     def linear2D(cls, center, M, phi=0.0, d=1.):
       return Beamformer(linear2DArray(center, M, phi, d))
 
 
     @classmethod
-    def circular2D(cls, center, M, radius=1., phi0=0.):
-      return Beamformer(circular2DArray(center, M, radius, phi0))
+    def circular2D(cls, center, M, radius=1., phi=0.):
+      return Beamformer(circular2DArray(center, M, radius, phi))
