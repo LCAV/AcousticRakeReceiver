@@ -154,8 +154,13 @@ class Beamformer(MicrophoneArray):
 
        return Beamformer(np.concatenate((self.R, y.R), axis=1)) 
 
+    # def steering_vector_2D_ff(self, frequency, phi, attn=False):
+    #     phi = np.array([phi]).reshape(phi.size)
+    #     omega = 2*np.pi*frequency
 
-    def steering_vector_2D(self, frequency, phi, dist):
+    #     return np.exp(-1j*omega*)
+
+    def steering_vector_2D(self, frequency, phi, dist, attn=False):
 
         phi = np.array([phi]).reshape(phi.size)
 
@@ -165,14 +170,24 @@ class Beamformer(MicrophoneArray):
         D = distance(self.R, X)
         omega = 2*np.pi*frequency
 
-        return np.exp(-1j*omega*D/constants.c)
+        if attn:
+            # TO DO 1: This will mean slightly different absolute value for
+            # every entry, even within the same steering vector. Perhaps a
+            # better paradigm is far-field with phase carrier.
+            return 1/(4*np.pi)/D * np.exp(-1j*omega*D/constants.c)
+        else:
+            return np.exp(-1j*omega*D/constants.c)
 
 
-    def steering_vector_2D_from_point(self, frequency, source):
-
+    def steering_vector_2D_from_point_ff(self, frequency, source, attn=False):
         phi = np.angle((source[0]-self.center[0,0]) + 1j*(source[1]-self.center[1,0]))
+        return self.steering_vector_2D(frequency, phi, constants.ffdist, attn=attn)
 
-        return self.steering_vector_2D(frequency, phi, constants.ffdist)
+
+    def steering_vector_2D_from_point(self, frequency, source, attn=False):
+        phi = np.angle((source[0]-self.center[0,0]) + 1j*(source[1]-self.center[1,0]))
+        dist = np.sqrt(np.sum((source - self.center)**2, axis=0))
+        return self.steering_vector_2D(frequency, phi, dist, attn=attn)
 
 
     def response(self, phi_list, frequency):
@@ -203,9 +218,18 @@ class Beamformer(MicrophoneArray):
         A_bad = self.steering_vector_2D_from_point(f, interferer)
         w = echo_beamformer(A_good, A_bad)
 
-        # print np.linalg.norm(A_good[:,0]), np.linalg.norm(np.sum(A_good, axis=1))
+        print np.linalg.norm(A_good[:,0]), np.linalg.norm(np.sum(A_good, axis=1))
 
         self.weights.update({f: w})
+
+    def rakeDelayAndSumWeights(self, source, frequencies):
+
+        h = np.zeros((self.M, 1))
+
+        for f in frequencies:
+            w = self.steering_vector_2D_from_point(f, source, attn=False)
+
+            self.weights.update({f: w})
 
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
