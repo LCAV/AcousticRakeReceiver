@@ -1,7 +1,8 @@
 import numpy as np
 from beamforming import *
 import matplotlib
-# matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
+
 
 import matplotlib.pyplot as plt
 
@@ -33,5 +34,3 @@ print 'bfresp'
 bfresp = bf.response(phi_list, 1000)
 plt.plot(phi_list, np.abs(bfresp)[0, :])
 plt.show()
-
-print

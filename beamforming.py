@@ -14,8 +14,26 @@ import stft
 
 
 def H(A, **kwargs):
-    """Returns the conjugate (Hermitian) transpose of a matrix."""
+    '''Returns the conjugate (Hermitian) transpose of a matrix.'''
+
     return np.transpose(A, **kwargs).conj()
+
+def sumcols(A): 
+    '''Sums the columns of a matrix (np.array). The output is a 2D np.array
+        of dimensions M x 1.'''
+
+    return np.sum(A, axis=1, keepdims=1)
+    
+
+def mdot(*args):
+    '''Left-to-right associative matrix multiplication of multiple 2D
+    ndarrays'''
+
+    ret = args[0]
+    for a in args[1:]:
+        ret = np.dot(ret,a)
+
+    return ret
 
 
 def complex_to_real_matrix(A):
@@ -60,17 +78,21 @@ def echo_beamformer_cvx(A_good, A_bad):
     return np.array(real_to_complex_vector(h.value))
 
 
-def echo_beamformer(A_good, A_bad, rcond=1e-15):
+def echo_beamformer(A_good, A_bad, R_n=None, rcond=1e-15):
 
     # Use the fact that this is just MaxSINR with a particular covariance
     # matrix, and a particular steering vector. TODO: For more microphones
     # than steering vectors, K is rank-deficient. Is the solution still fine?
     # The answer seems to be yes.
 
-    a = np.sum(A_good, axis=1, keepdims=1)
-    K_inv = np.linalg.pinv(
-        A_bad.dot(H(A_bad)) + rcond * np.eye( A_good.shape[0]))
-    return K_inv.dot(a) / (H(a).dot(K_inv.dot(a)))
+    a_1 = sumcols(A_good)
+    a_bad = sumcols(A_bad)
+
+    if R_n is None:
+        R_n = np.zeros(A_good.shape[0])
+
+    K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye( A_good.shape[0]))
+    return K_inv.dot(a_1) / mdot(H(a_1), K_inv, a_1)
 
 
 def distance(X, Y):
@@ -196,8 +218,8 @@ class Beamformer(MicrophoneArray):
             return np.exp(-1j * omega * D / constants.c)
 
     def steering_vector_2D_from_point_ff(self, frequency, source, attn=False):
-        phi = np.angle(
-            (source[0] - self.center[0, 0]) + 1j * (source[1] - self.center[1, 0]))
+        phi = np.angle(         (source[0] - self.center[0, 0]) 
+                         + 1j * (source[1] - self.center[1, 0]))
         return self.steering_vector_2D(
             frequency,
             phi,
@@ -205,8 +227,8 @@ class Beamformer(MicrophoneArray):
             attn=attn)
 
     def steering_vector_2D_from_point(self, frequency, source, attn=False):
-        phi = np.angle(
-            (source[0] - self.center[0, 0]) + 1j * (source[1] - self.center[1, 0]))
+        phi = np.angle(         (source[0] - self.center[0, 0]) 
+                         + 1j * (source[1] - self.center[1, 0]))
         dist = np.sqrt(np.sum((source - self.center) ** 2, axis=0))
         return self.steering_vector_2D(frequency, phi, dist, attn=attn)
 
@@ -232,6 +254,7 @@ class Beamformer(MicrophoneArray):
         w = np.exp(2j * np.pi * f[:, np.newaxis] * proj / constants.c)
         self.weights.update(zip(f, w[:, :, np.newaxis]))
 
+
     def echoBeamformerWeights(self, source, interferer, frequencies):
         '''
         This method computes a beamformer focusing on a number of specific sources
@@ -245,25 +268,82 @@ class Beamformer(MicrophoneArray):
 
         for f in frequencies:
 
-            A_good = self.steering_vector_2D_from_point(f, source)
-            A_bad = self.steering_vector_2D_from_point(f, interferer)
+            A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
             w = echo_beamformer(A_good, A_bad)
 
             #print np.linalg.norm(A_good[:, 0]), np.linalg.norm(np.sum(A_good, axis=1))
 
             self.weights.update({f: w})
 
+
     def rakeDelayAndSumWeights(self, source, frequencies):
 
-        h = np.zeros((self.M, 1))
+        if np.rank(frequencies) == 0:
+            frequencies = np.array([frequencies])
+        K = source.shape[1]
 
         for f in frequencies:
-            w = self.steering_vector_2D_from_point(f, source, attn=False)
+            W = self.steering_vector_2D_from_point(f, source, attn=False)
+            w = 1.0/self.M/(K+1) * np.sum(W, axis=1, keepdims=1)
 
             self.weights.update({f: w})
 
+    def rakeOneForcingWeights(self, source, R, frequencies):
+
+        if np.rank(frequencies) == 0:
+            frequencies = np.array([frequencies])
+
+        for f in frequencies:
+            A_s     = self.steering_vector_2D_from_point(f, source, attn=True)
+            R_inv   = np.linalg.pinv(R)
+            D       = np.linalg.pinv(H(A_s).dot(R_inv.dot(A_s)))
+
+            self.weights.update({f: sumcols(Cov_inv.dot(A_s.dot(D)))})
+
+    def rakeMaxUDR(self, source, Cov, frequencies):
+            pass
+
+    def SNR(self, source, interferer, R_n, f):
+
+        # This works at a single frequency because otherwise we need to pass
+        # many many covariance matrices. Easy to change though (you can also
+        # have frequency independent R_n).
+
+
+        # To compute the SNR, we /must/ use the real steering vectors, so no
+        # far field, and attn=True
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+
+        if interferer is not None:
+            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
+        else:
+            R_nq = R_n
+
+        w = self.weights[f]
+        a_1 = sumcols(A_good)
+        return np.real(mdot(H(w), a_1, H(a_1), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
+
+
+    def UDR(self, source, interferer, R_n, f):
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+
+        if interferer is not None:
+            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
+        else:
+            R_nq = R_n
+
+        w = self.weights[f]
+        return np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
+
+
+
     def add_weights(self, new_frequency_list, new_weights):
         self.weights.update(zip(new_frequency_list, new_weights))
+
+
 
     def frequencyDomainEchoBeamforming(
             self,
