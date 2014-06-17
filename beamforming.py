@@ -14,8 +14,26 @@ import stft
 
 
 def H(A, **kwargs):
-    """Returns the conjugate (Hermitian) transpose of a matrix."""
+    '''Returns the conjugate (Hermitian) transpose of a matrix.'''
+
     return np.transpose(A, **kwargs).conj()
+
+def sumcols(A): 
+    '''Sums the columns of a matrix (np.array). The output is a 2D np.array
+        of dimensions M x 1.'''
+
+    return np.sum(A, axis=1, keepdims=1)
+    
+
+def mdot(*args):
+    '''Left-to-right associative matrix multiplication of multiple 2D
+    ndarrays'''
+
+    ret = args[0]
+    for a in args[1:]:
+        ret = np.dot(ret,a)
+
+    return ret
 
 
 def complex_to_real_matrix(A):
@@ -60,17 +78,21 @@ def echo_beamformer_cvx(A_good, A_bad):
     return np.array(real_to_complex_vector(h.value))
 
 
-def echo_beamformer(A_good, A_bad, rcond=1e-15):
+def echo_beamformer(A_good, A_bad, R_n=None, rcond=1e-15):
 
     # Use the fact that this is just MaxSINR with a particular covariance
     # matrix, and a particular steering vector. TODO: For more microphones
     # than steering vectors, K is rank-deficient. Is the solution still fine?
     # The answer seems to be yes.
 
-    a = np.sum(A_good, axis=1, keepdims=1)
-    K_inv = np.linalg.pinv(
-        A_bad.dot(H(A_bad)) + rcond * np.eye(A_bad.shape[0]))
-    return K_inv.dot(a) / (H(a).dot(K_inv.dot(a)))
+    a_1 = sumcols(A_good)
+    a_bad = sumcols(A_bad)
+
+    if R_n is None:
+        R_n = np.zeros(A_good.shape[0])
+
+    K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
+    return K_inv.dot(a_1) / mdot(H(a_1), K_inv, a_1)
 
 
 def distance(X, Y):
@@ -144,7 +166,8 @@ class MicrophoneArray(object):
         Save all the signals to wav files
         '''
         from scipy.io import wavfile
-        scaled = np.array(self.signals.T, dtype=np.int16)
+        #scaled = np.array(self.signals.T, dtype=np.int16)
+        scaled = np.array(self.signals.T/self.signals.max(), dtype=float)
         wavfile.write(filename, Fs, scaled)
 
     @classmethod
@@ -226,8 +249,8 @@ class Beamformer(MicrophoneArray):
 
 
     def steering_vector_2D_from_point_ff(self, frequency, source, attn=False):
-        phi = np.angle(
-            (source[0] - self.center[0, 0]) + 1j * (source[1] - self.center[1, 0]))
+        phi = np.angle(         (source[0] - self.center[0, 0]) 
+                         + 1j * (source[1] - self.center[1, 0]))
         return self.steering_vector_2D(
             frequency,
             phi,
@@ -236,8 +259,8 @@ class Beamformer(MicrophoneArray):
 
 
     def steering_vector_2D_from_point(self, frequency, source, attn=False):
-        phi = np.angle(
-            (source[0] - self.center[0, 0]) + 1j * (source[1] - self.center[1, 0]))
+        phi = np.angle(         (source[0] - self.center[0, 0]) 
+                         + 1j * (source[1] - self.center[1, 0]))
         dist = np.sqrt(np.sum((source - self.center) ** 2, axis=0))
         return self.steering_vector_2D(frequency, phi, dist, attn=attn)
 
@@ -270,7 +293,7 @@ class Beamformer(MicrophoneArray):
                 self.frequencies[:, np.newaxis] * proj / constants.c).T
 
 
-    def echoBeamformerWeights(self, source, interferer, rcond=1e-3):
+    def echoBeamformerWeights(self, source, interferer, R_n=None, rcond=1e-15):
         '''
         This method computes a beamformer focusing on a number of specific sources
         and ignoring a number of interferers
@@ -278,20 +301,87 @@ class Beamformer(MicrophoneArray):
         interferer: interferers locations
         '''
 
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
+
         self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
         for i,f in enumerate(self.frequencies):
 
-            A_good = self.steering_vector_2D_from_point_ff(f, source)
-            A_bad = self.steering_vector_2D_from_point_ff(f, interferer)
-            self.weights[:,i] = echo_beamformer(A_good, A_bad, rcond=rcond)[:,0]
+            A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            self.weights[:,i] = echo_beamformer(A_good, A_bad, R_n, rcond=rcond)[:,0]
+
 
     def rakeDelayAndSumWeights(self, source):
 
         self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
-        for f in frequencies:
-            self.weights[:,i] = self.steering_vector_2D_from_point(f, source, attn=False)
+        K = source.shape[1] - 1
+
+        for i, f in enumerate(self.frequencies):
+            W = self.steering_vector_2D_from_point(f, source, attn=False)
+            self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
+
+
+    def rakeOneForcingWeights(self, source, interferer, R_n, f):
+
+        A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True)
+        R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+
+        A_s      = self.steering_vector_2D_from_point(f, source, attn=True)
+        R_nq_inv = np.linalg.pinv(R_nq)
+        D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
+
+        self.weights.update( { f : sumcols( mdot( R_nq_inv, A_s, D ) ) } )
+ 
+
+    def rakeMaxUDRWeights(self, source, interferer, R_n, f):
+        
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+        A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
+
+        R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+
+        C = np.linalg.cholesky(R_nq)
+        l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
+
+        self.weights.update({f: v[:,np.newaxis, 0]})
+
+
+    def SNR(self, source, interferer, R_n, f):
+
+        # This works at a single frequency because otherwise we need to pass
+        # many many covariance matrices. Easy to change though (you can also
+        # have frequency independent R_n).
+
+
+        # To compute the SNR, we /must/ use the real steering vectors, so no
+        # far field, and attn=True
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+
+        if interferer is not None:
+            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
+        else:
+            R_nq = R_n
+
+        w = self.weights[f]
+        a_1 = sumcols(A_good)
+        return np.real(mdot(H(w), a_1, H(a_1), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
+
+
+    def UDR(self, source, interferer, R_n, f):
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+
+        if interferer is not None:
+            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
+        else:
+            R_nq = R_n
+
+        w = self.weights[f]
+        return np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
 
 
     def process(self):

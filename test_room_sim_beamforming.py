@@ -16,7 +16,7 @@ p2 = [5, 4]
 
 # Some simulation parameters
 Fs = 8000
-absorption = 0.5
+absorption = 0.9
 max_order = 15
 
 # The first signal (of interest) is singing
@@ -48,14 +48,15 @@ signal2 = u.highpass(signal2, Fs)
 # create a microphone array
 mic1 = [2, 1.5]
 M = 9
-d = 0.03
+d = 0.10
 phi = -np.pi / 3
 
 L = 128
 hop = 64
 zp = 64
 
-mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'FrequencyDomain', L, hop, zp, zp)
+#mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'FrequencyDomain', L, hop, zp, zp)
+mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'TimeDomain', 4096)
 
 # create the room with sources and mics
 room1 = rg.Room.shoeBox2D(
@@ -78,10 +79,11 @@ room1.simulate()
 mics.to_wav('raw_output.wav', Fs)
 
 # create the echo beamformer and add to the room
-max_order = 1
+max_order = 3
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-mics.echoBeamformerWeights(good_source, bad_source)
+mics.echoBeamformerWeights(good_source, bad_source, rcond=1e-3)
+#mics.rakeDelayAndSumWeights(good_source)
 
 processed = mics.process()
 
@@ -90,10 +92,13 @@ clipped = u.clip(processed, 2 ** 15 - 1, -2 ** 15)
 
 input_signal = mics.signals[mics.M / 2]
 
-wavfile.write('proc_output.wav', Fs, np.array(clipped, dtype=np.int16))
+hp_sig = u.highpass(clipped, Fs, fc=200)
+output = np.array(hp_sig/hp_sig.max(), dtype=float)
+
+wavfile.write('proc_output.wav', Fs, output)
 
 # plot the room and beamformer
-room1.plot(img_order=2, freq=[500, 1000, 2000])
+room1.plot(img_order=1, freq=[500, 1000, 2000])
 
 # plot the weights
 plt.figure()

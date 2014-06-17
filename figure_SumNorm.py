@@ -20,11 +20,11 @@ max_order = 4
 # Create a microphone array
 M = 12
 d = 0.2
-frequencies = np.arange(100, 4000, 50)
+frequencies = np.arange(100, 4000, 100)
 mics = bf.Beamformer.linear2D(mic1, M, d=d)
 
 
-n_monte_carlo = 50
+n_monte_carlo = 100
 
 SNR_gain = np.zeros(frequencies.shape)
 for i, f in enumerate(frequencies):
