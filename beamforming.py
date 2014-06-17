@@ -255,7 +255,7 @@ class Beamformer(MicrophoneArray):
         self.weights.update(zip(f, w[:, :, np.newaxis]))
 
 
-    def echoBeamformerWeights(self, source, interferer, frequencies):
+    def echoBeamformerWeights(self, source, interferer, R_n, frequencies):
         '''
         This method computes a beamformer focusing on a number of specific sources
         and ignoring a number of interferers
@@ -270,7 +270,7 @@ class Beamformer(MicrophoneArray):
 
             A_good = self.steering_vector_2D_from_point(f, source, attn=True)
             A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
-            w = echo_beamformer(A_good, A_bad)
+            w = echo_beamformer(A_good, A_bad, R_n)
 
             #print np.linalg.norm(A_good[:, 0]), np.linalg.norm(np.sum(A_good, axis=1))
 
