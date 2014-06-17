@@ -289,20 +289,29 @@ class Beamformer(MicrophoneArray):
 
             self.weights.update({f: w})
 
-    def rakeOneForcingWeights(self, source, R, frequencies):
+    def rakeOneForcingWeights(self, source, interferer, R_n, f):
 
-        if np.rank(frequencies) == 0:
-            frequencies = np.array([frequencies])
+        A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True)
+        R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
 
-        for f in frequencies:
-            A_s     = self.steering_vector_2D_from_point(f, source, attn=True)
-            R_inv   = np.linalg.pinv(R)
-            D       = np.linalg.pinv(H(A_s).dot(R_inv.dot(A_s)))
+        A_s      = self.steering_vector_2D_from_point(f, source, attn=True)
+        R_nq_inv = np.linalg.pinv(R_nq)
+        D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
 
-            self.weights.update({f: sumcols(Cov_inv.dot(A_s.dot(D)))})
+        self.weights.update( { f : sumcols( mdot( R_nq_inv, A_s, D ) ) } )
+ 
+    def rakeMaxUDRWeights(self, source, interferer, R_n, f):
+        
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+        A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
 
-    def rakeMaxUDR(self, source, Cov, frequencies):
-            pass
+        R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+
+        C = np.linalg.cholesky(R_nq)
+        l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
+
+        self.weights.update({f: v[:,np.newaxis, 0]})
+
 
     def SNR(self, source, interferer, R_n, f):
 

@@ -18,7 +18,7 @@ p2 = [5, 4]
 source1 = [0.5, 1.5]
 
 # the second signal is some speech
-source2 = [1.5, 2]
+source2 = [2.5, 2]
 
 # Some simulation parameters
 Fs = 44000
@@ -27,9 +27,9 @@ max_order = 4
 
 # create a microphone array
 mic1 = [2, 3]
-M = 10
-d = 0.1
-f = 1200.
+M = 6
+d = 0.05
+f = 1000
 phi = -np.pi / 3
 mics = bf.Beamformer.linear2D(mic1, M, d=d) # + bf.Beamformer.linear2D(mic1, 4, d=d, phi=np.pi / 2)
 
@@ -44,26 +44,26 @@ room1.addSource(source1)
 room1.addSource(source2)
 
 # create the echo beamformer and add to the room
-mics.echoBeamformerWeights(room1.sources[0].getImages(max_order=1), 
-                           room1.sources[1].getImages(max_order=1), 
-                           f)
+mics.rakeMaxUDRWeights(room1.sources[0].getImages(max_order=3), 
+                       room1.sources[1].getImages(max_order=3), 
+                       0.001 * np.eye(M),
+                       f)
 room1.addMicrophoneArray(mics)
 
 print 'SNRs'
 print mics.SNR(room1.sources[0].getImages(max_order=0), room1.sources[1].getImages(max_order=0), np.eye(M), f)
 print mics.SNR(room1.sources[0].getImages(max_order=1), room1.sources[1].getImages(max_order=1), np.eye(M), f)
 print mics.SNR(room1.sources[0].getImages(max_order=2), room1.sources[1].getImages(max_order=2), np.eye(M), f)
+print mics.SNR(room1.sources[0].getImages(max_order=3), room1.sources[1].getImages(max_order=3), np.eye(M), f)
 
 print 'UDRs'
-print mics.UDR(room1.sources[0].getImages(max_order=0), None, np.eye(M), f)
-print mics.UDR(room1.sources[0].getImages(max_order=1), None, np.eye(M), f)
-print mics.UDR(room1.sources[0].getImages(max_order=2), None, np.eye(M), f)
+print mics.UDR(room1.sources[0].getImages(max_order=0), room1.sources[1].getImages(max_order=0), np.eye(M), f)
+print mics.UDR(room1.sources[0].getImages(max_order=1), room1.sources[1].getImages(max_order=1), np.eye(M), f)
+print mics.UDR(room1.sources[0].getImages(max_order=2), room1.sources[1].getImages(max_order=2), np.eye(M), f)
+print mics.UDR(room1.sources[0].getImages(max_order=3), room1.sources[1].getImages(max_order=3), np.eye(M), f)
 
 
 # plot the result
 room1.plot(freq=f, img_order=1)
 
 plt.show()
-plt.close()
-
-
