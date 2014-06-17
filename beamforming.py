@@ -91,7 +91,7 @@ def echo_beamformer(A_good, A_bad, R_n=None, rcond=1e-15):
     if R_n is None:
         R_n = np.zeros(A_good.shape[0])
 
-    K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye( A_good.shape[0]))
+    K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
     return K_inv.dot(a_1) / mdot(H(a_1), K_inv, a_1)
 
 
