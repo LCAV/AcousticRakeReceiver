@@ -8,5 +8,8 @@ c = 343.
 # distance to the far field
 ffdist = 10.
 
+# cut-off frequency of standard high-pass filter
+fc_hp = 150.
+
 # tolerance for computations
 eps = 1e-10

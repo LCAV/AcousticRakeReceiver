@@ -28,12 +28,7 @@ M = 5
 d = 0.1
 f = 1000.
 phi = -np.pi / 3
-mics = bf.Beamformer.linear2D(mic1,
-                              M,
-                              d=d) + bf.Beamformer.linear2D(mic1,
-                                                            4,
-                                                            d=d,
-                                                            phi=np.pi / 2)
+mics = bf.Beamformer.linear2D(mic1, M, 0, d, Fs, 'TimeDomain', 1024) + bf.Beamformer.linear2D(mic1, 4, np.pi / 2, d, Fs, 'TimeDomain', 1024)
 
 # create the room with sources
 room1 = rg.Room.shoeBox2D(
@@ -49,7 +44,7 @@ room1.addSource(source2)
 mics.echoBeamformerWeights(
     room1.sources[0].getImages(
         max_order=1), room1.sources[1].getImages(
-            max_order=1), f)
+            max_order=1))
 room1.addMicrophoneArray(mics)
 
 # plot the result

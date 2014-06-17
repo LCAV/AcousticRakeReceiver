@@ -68,7 +68,7 @@ def spectroplot(Z, N, L, D, Fs, fdiv=None, tdiv=None):
         tick_locs = tick_lbls * Fs / L
         plt.xticks(tick_locs, tick_lbls)
 
-    plt.colorbar()
+    plt.colorbar(orientation='horizontal')
 
 # A more general implementation of STFT
 

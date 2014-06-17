@@ -1,5 +1,6 @@
 
 import numpy as np
+import constants
 
 
 def clip(signal, high, low):
@@ -40,7 +41,7 @@ def normalize_pwr(sig1, sig2):
     return sig1 * np.sqrt(p2 / p1)
 
 
-def highpass(signal, Fs, fc=50, plot=False):
+def highpass(signal, Fs, fc=constants.fc_hp, plot=False):
     '''
     Filter out the really low frequencies, default is below 50Hz
     '''
@@ -85,7 +86,7 @@ def time_dB(signal, Fs, bits=16):
 
     import matplotlib.pyplot as plt
 
-    # min dB
+    # min dB (least significant bit in dB)
     lsb = -20 * np.log10(2.) * (bits - 1)
 
     # magnitude in dB (clipped)
@@ -101,14 +102,21 @@ def time_dB(signal, Fs, bits=16):
     mag_neg[In] = 20 * np.log10(neg[In]) + lsb + 1
 
     plt.plot(np.arange(len(signal)) / float(Fs), mag_pos - mag_neg)
-    yticks = plt.getp(plt.gca(), 'yticks')
+    plt.axis('tight')
+    plt.ylim(lsb-1, -lsb+1)
 
-    newticks = yticks.copy()
-    Ip = np.where(yticks > 0)
-    In = np.where(yticks < 0)
-    newticks[Ip] = newticks[Ip] + np.floor(lsb) + 1
-    newticks[In] = newticks[In] - np.floor(lsb) - 1
-    plt.setp(plt.gca(), 'yticklabels', -newticks)
+    # draw ticks corresponding to decibels
+    div = 20
+    n = int(-lsb/div)+1
+    yticks = np.zeros(2*n)
+    yticks[:n] = lsb - 1 + np.arange(0, n*div, div)
+    yticks[n:] = -lsb + 1 - np.arange((n-1)*div, -1, -div)
+    yticklabels = np.zeros(2*n)
+    yticklabels = range(0, -n*div, -div) + range(-(n-1)*div, 1, div)
+    plt.setp(plt.gca(), 'yticks', yticks)
+    plt.setp(plt.gca(), 'yticklabels', yticklabels)
+
+    plt.setp(plt.getp(plt.gca(), 'ygridlines'), 'ls', '--')
 
 
 def spectrum(signal, Fs, N):
@@ -118,3 +126,4 @@ def spectrum(signal, Fs, N):
 
     F = stft.stft(signal, N, N / 2, win=windows.hann(N))
     stft.spectroplot(F.T, N, N / 2, N / 2, Fs)
+

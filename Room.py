@@ -100,18 +100,23 @@ class Room(object):
 
             # draw the beam pattern of the beamformer if requested (and
             # available)
-            if (freq is not None and freq in self.micArray.weights):
-                phis = np.arange(360) * 2 * np.pi / 360.
-                norm = np.linalg.norm(
-                    (self.corners - self.micArray.center),
-                    axis=0).max()
-                H = np.abs(self.micArray.response(phis, freq))[0]
-                H /= np.abs(H).max()
-                x = np.cos(phis) * H * norm + self.micArray.center[0, 0]
-                y = np.sin(phis) * H * norm + self.micArray.center[1, 0]
-                ax.plot(x, y, '--')
-            elif (freq is not None and freq not in self.micArray.weights):
-                print 'Frequency not in weights dictionary.'
+            if freq is not None and self.micArray.weights is not None:
+                freq = np.array(freq)
+                if np.rank(freq) is 0:
+                    freq = np.array([freq])
+                for i,f in enumerate(freq):
+                    phis = np.arange(360) * 2 * np.pi / 360.
+                    norm = np.linalg.norm(
+                        (self.corners - self.micArray.center),
+                        axis=0).max()
+                    f0, H = self.micArray.response(phis, f)
+                    H = np.abs(H)/np.abs(H).max()
+                    x = np.cos(phis) * H * norm + self.micArray.center[0, 0]
+                    y = np.sin(phis) * H * norm + self.micArray.center[1, 0]
+                    ax.plot(x, y, '--')
+                    lbl = '%.2f' % f0
+                    i0 = i*360/len(freq)
+                    ax.text(x[i0], y[i0], lbl)
 
         # define some markers for different sources and colormap for damping
         markers = ['o', 's', 'v', '.']

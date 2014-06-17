@@ -50,8 +50,12 @@ mic1 = [2, 1.5]
 M = 9
 d = 0.03
 phi = -np.pi / 3
-#mics = bf.Beamformer.linear2D(mic1, M, d=d, phi=phi)
-mics = bf.Beamformer.circular2D(mic1, M, radius=d*M/2./np.pi, phi=phi)
+
+L = 128
+hop = 64
+zp = 64
+
+mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'FrequencyDomain', L, hop, zp, zp)
 
 # create the room with sources and mics
 room1 = rg.Room.shoeBox2D(
@@ -77,16 +81,9 @@ mics.to_wav('raw_output.wav', Fs)
 max_order = 1
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-L = 128
-hop = 64
-zp = 64
-N = L + 2*zp
+mics.echoBeamformerWeights(good_source, bad_source)
 
-processed = mics.frequencyDomainEchoBeamforming(good_source, bad_source, Fs, L, hop, zpb=zp, zpf=zp)
-
-#N = 0.5 * Fs
-#N += N % 2
-#processed = mics.timeDomainEchoBeamforming(good_source, bad_source, Fs, N)
+processed = mics.process()
 
 # clip the signal over 16 bit precision
 clipped = u.clip(processed, 2 ** 15 - 1, -2 ** 15)
@@ -95,12 +92,12 @@ input_signal = mics.signals[mics.M / 2]
 
 wavfile.write('proc_output.wav', Fs, np.array(clipped, dtype=np.int16))
 
-f = np.arange(0, N / 2 + 1) / float(N) * Fs
+# plot the room and beamformer
+room1.plot(img_order=2, freq=[500, 1000, 2000])
 
-# plot signals to see if we get something meaningful
-nf = np.floor(1000 * N / float(Fs))
-room1.plot(img_order=2, freq=f[nf])
-print 'f=', f[nf]
+# plot the weights
+plt.figure()
+mics.plot()
 
 # open and plot the two signals
 plt.figure()
