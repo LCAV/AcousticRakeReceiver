@@ -15,15 +15,18 @@ def clip(signal, high, low):
     return s
 
 
-def normalize(signal, bits=16):
+def normalize(signal, bits=None):
     '''
     normalize a signal to be in the range of signed integers with a given number of bits
     default number of bits is 16
     '''
 
     signal /= np.abs(signal).max()
-    signal *= 2 ** (bits - 1)
-    signal = clip(signal, 2 ** (bits - 1) - 1, -2 ** (bits - 1))
+
+    # if one wants to scale for bits allocated
+    if bits is not None:
+        signal *= 2 ** (bits - 1)
+        signal = clip(signal, 2 ** (bits - 1) - 1, -2 ** (bits - 1))
 
     return signal
 
@@ -102,6 +105,8 @@ def time_dB(signal, Fs, bits=16):
     mag_neg[In] = 20 * np.log10(neg[In]) + lsb + 1
 
     plt.plot(np.arange(len(signal)) / float(Fs), mag_pos - mag_neg)
+    plt.xlabel('Time [s]')
+    plt.ylabel('Amplitude [dB]')
     plt.axis('tight')
     plt.ylim(lsb-1, -lsb+1)
 
@@ -125,5 +130,48 @@ def spectrum(signal, Fs, N):
     import windows
 
     F = stft.stft(signal, N, N / 2, win=windows.hann(N))
-    stft.spectroplot(F.T, N, N / 2, N / 2, Fs)
+    stft.spectroplot(F.T, N, N / 2, Fs)
+
+
+def dB(signal):
+    return 20*np.log10(np.abs(signal))
+
+
+def comparePlot(signal1, signal2, Fs, N, title1=None, title2=None):
+
+    import matplotlib.pyplot as plt
+
+    plt.subplot(2,2,1)
+    #time_dB(signal1, Fs)
+    plt.plot(signal1)
+    plt.ylim(-1, 1)
+    if title1 is not None:
+        plt.title(title1)
+
+    plt.subplot(2,2,2)
+    #time_dB(signal2, Fs)
+    plt.plot(signal2)
+    plt.ylim(-1, 1)
+    if title2 is not None:
+        plt.title(title2)
+
+    import stft
+    import windows
+
+    F1 = stft.stft(signal1, N, N / 2, win=windows.hann(N))
+    F2 = stft.stft(signal2, N, N / 2, win=windows.hann(N))
+
+    vmax = np.maximum(dB(F1).max(), dB(F2).max())
+    vmin = np.minimum(dB(F1).min(), dB(F2).min())
+
+    cmap = 'jet'
+    interpolation='sinc'
+
+    plt.subplot(2,2,3)
+    stft.spectroplot(F1.T, N, N / 2, Fs, vmin=vmin, vmax=vmax,
+            cmap=plt.get_cmap(cmap), interpolation=interpolation)
+
+    plt.subplot(2,2,4)
+    stft.spectroplot(F2.T, N, N / 2, Fs, vmin=vmin, vmax=vmax, 
+            cmap=plt.get_cmap(cmap), interpolation=interpolation)
 

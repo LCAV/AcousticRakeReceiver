@@ -43,7 +43,7 @@ M = 9
 d = 0.2
 f = 1000.
 phi = -np.pi / 3
-mics = bf.Beamformer.linear2D(mic1, M, d=d)
+mics = bf.MicrophoneArray.linear2D(mic1, M, phi, d)
 
 # create the room with sources
 room1 = rg.Room.shoeBox2D(
@@ -70,7 +70,7 @@ mics.to_wav('output.wav', Fs)
 rate, signal = wavfile.read('output.wav')
 
 # plot signals to see if we get something meaningful
-room1.plot(img_order=2)
+room1.plot()
 
 # plot all the RIR
 S = len(room1.sources)

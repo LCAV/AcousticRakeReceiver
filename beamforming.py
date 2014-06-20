@@ -161,21 +161,44 @@ class MicrophoneArray(object):
 
         self.center = np.mean(R, axis=1, keepdims=True)
 
-    def to_wav(self, filename, Fs):
+    def to_wav(self, filename, Fs, mono=False, norm=False, type=float):
         '''
         Save all the signals to wav files
         '''
         from scipy.io import wavfile
-        #scaled = np.array(self.signals.T, dtype=np.int16)
-        scaled = np.array(self.signals.T/self.signals.max(), dtype=float)
-        wavfile.write(filename, Fs, scaled)
+
+        if mono is True:
+            signal = self.signals[self.M/2]
+        else:
+            signal = self.signals.T  # each column is a channel
+
+        if type is float:
+            bits = None
+        elif type is np.int8:
+            bits = 8
+        elif type is np.int16:
+            bits = 16
+        elif type is np.int32:
+            bits = 32
+        elif type is np.int64:
+            bits = 64
+        else:
+            raise NameError('No such type.')
+
+        if norm is True:
+            from utilities import normalize
+            signal = normalize(signal, bits=bits)
+
+        signal = np.array(signal, dtype=type)
+
+        wavfile.write(filename, Fs, signal)
 
     @classmethod
-    def linear2D(cls, center, M, phi=0.0, d=1.):
-        return MicrophoneArray(linear2Darray(center, M, phi, d))
+    def linear2D(cls, center, M, phi, d):
+        return MicrophoneArray(linear2DArray(center, M, phi, d))
 
     @classmethod
-    def circular2D(cls, center, M, radius=1., phi=0.):
+    def circular2D(cls, center, M, phi, radius):
         return MicrophoneArray(circular2DArray(center, M, radius, phi))
 
 
@@ -248,20 +271,24 @@ class Beamformer(MicrophoneArray):
             return np.exp(-1j * omega * D / constants.c)
 
 
-    def steering_vector_2D_from_point_ff(self, frequency, source, attn=False):
+    def steering_vector_2D_from_point(self, frequency, source, attn=True, ff=False):
+        """ Creates a steering vector for a particular frequency and source
+
+        Args:
+            frequency
+            source: location in cartesian coordinates
+            attn: include attenuation factor if True
+            ff:   uses far-field distance if true
+
+        Return: 
+            A 2x1 ndarray containing the steering vector
+        """
         phi = np.angle(         (source[0] - self.center[0, 0]) 
                          + 1j * (source[1] - self.center[1, 0]))
-        return self.steering_vector_2D(
-            frequency,
-            phi,
-            constants.ffdist,
-            attn=attn)
-
-
-    def steering_vector_2D_from_point(self, frequency, source, attn=False):
-        phi = np.angle(         (source[0] - self.center[0, 0]) 
-                         + 1j * (source[1] - self.center[1, 0]))
-        dist = np.sqrt(np.sum((source - self.center) ** 2, axis=0))
+        if (not ff):
+            dist = np.sqrt(np.sum((source - self.center) ** 2, axis=0))
+        else:
+            dist = constants.ffdist
         return self.steering_vector_2D(frequency, phi, dist, attn=attn)
 
 
@@ -293,7 +320,8 @@ class Beamformer(MicrophoneArray):
                 self.frequencies[:, np.newaxis] * proj / constants.c).T
 
 
-    def echoBeamformerWeights(self, source, interferer, R_n=None, rcond=1e-15):
+    def echoBeamformerWeights(self, source, interferer, R_n=None, 
+            rcond=1e-15, ff=False, attn=True):
         '''
         This method computes a beamformer focusing on a number of specific sources
         and ignoring a number of interferers
@@ -308,8 +336,8 @@ class Beamformer(MicrophoneArray):
 
         for i,f in enumerate(self.frequencies):
 
-            A_good = self.steering_vector_2D_from_point(f, source, attn=True)
-            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            A_good = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
+            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
             self.weights[:,i] = echo_beamformer(A_good, A_bad, R_n, rcond=rcond)[:,0]
 
 
@@ -320,16 +348,16 @@ class Beamformer(MicrophoneArray):
         K = source.shape[1] - 1
 
         for i, f in enumerate(self.frequencies):
-            W = self.steering_vector_2D_from_point(f, source, attn=False)
+            W = self.steering_vector_2D_from_point(f, source, attn=False, ff=False)
             self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
 
 
     def rakeOneForcingWeights(self, source, interferer, R_n, f):
 
-        A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True)
+        A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
         R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
 
-        A_s      = self.steering_vector_2D_from_point(f, source, attn=True)
+        A_s      = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
         R_nq_inv = np.linalg.pinv(R_nq)
         D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
 
@@ -338,8 +366,8 @@ class Beamformer(MicrophoneArray):
 
     def rakeMaxUDRWeights(self, source, interferer, R_n, f):
         
-        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
-        A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True)
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
+        A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
 
         R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
 
@@ -358,10 +386,10 @@ class Beamformer(MicrophoneArray):
 
         # To compute the SNR, we /must/ use the real steering vectors, so no
         # far field, and attn=True
-        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
 
         if interferer is not None:
-            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
             R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
         else:
             R_nq = R_n
@@ -372,10 +400,10 @@ class Beamformer(MicrophoneArray):
 
 
     def UDR(self, source, interferer, R_n, f):
-        A_good = self.steering_vector_2D_from_point(f, source, attn=True)
+        A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
 
         if interferer is not None:
-            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True)
+            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
             R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
         else:
             R_nq = R_n
@@ -457,6 +485,7 @@ class Beamformer(MicrophoneArray):
         plt.title('Beamforming filters')
         plt.xlabel('Time [s]')
         plt.ylabel('Filter amplitude')
+        plt.axis('tight')
 
 
     @classmethod
@@ -464,6 +493,6 @@ class Beamformer(MicrophoneArray):
         return Beamformer(linear2DArray(center, M, phi, d), Fs, proc, *args)
 
     @classmethod
-    def circular2D(cls, center, M, radius, phi, Fs, proc, *args):
+    def circular2D(cls, center, M, phi, radius, Fs, proc, *args):
         return Beamformer(circular2DArray(center, M, radius, phi), Fs, proc, *args)
 
