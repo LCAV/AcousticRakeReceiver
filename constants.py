@@ -9,7 +9,7 @@ c = 343.
 ffdist = 10.
 
 # cut-off frequency of standard high-pass filter
-fc_hp = 150.
+fc_hp = 200.
 
 # tolerance for computations
 eps = 1e-10
