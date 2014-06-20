@@ -1,6 +1,7 @@
 
 import numpy as np
 
+import beamforming as bf
 from SoundSource import SoundSource
 
 import constants
@@ -100,7 +101,9 @@ class Room(object):
 
             # draw the beam pattern of the beamformer if requested (and
             # available)
-            if freq is not None and self.micArray.weights is not None:
+            if freq is not None \
+                    and type(self.micArray) is bf.Beamformer \
+                    and self.micArray.weights is not None:
                 freq = np.array(freq)
                 if np.rank(freq) is 0:
                     freq = np.array([freq])
@@ -113,10 +116,10 @@ class Room(object):
                     H = np.abs(H)/np.abs(H).max()
                     x = np.cos(phis) * H * norm + self.micArray.center[0, 0]
                     y = np.sin(phis) * H * norm + self.micArray.center[1, 0]
-                    ax.plot(x, y, '--')
+                    l = ax.plot(x, y, '--')
                     lbl = '%.2f' % f0
                     i0 = i*360/len(freq)
-                    ax.text(x[i0], y[i0], lbl)
+                    ax.text(x[i0], y[i0], lbl, color=plt.getp(l[0], 'color'))
 
         # define some markers for different sources and colormap for damping
         markers = ['o', 's', 'v', '.']
