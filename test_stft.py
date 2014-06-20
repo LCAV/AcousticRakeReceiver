@@ -53,7 +53,7 @@ plt.plot(abs(signal[:len(iX) - zp_front - zp_back] - iX[zp_front:-zp_back]))
 plt.title('Difference of original and reconstruction from STFT')
 
 plt.figure()
-stft.spectroplot(X.T, N, hop, L - hop, Fs, 1000, 1)
+stft.spectroplot(X.T, N, hop, Fs, 1000, 1)
 plt.title('Orignal spectrum')
 
 # Create an optimal bandpass filter
@@ -75,7 +75,7 @@ plt.title('Response of the filter')
 td_filter = s.signal.convolve(signal, h)
 Ztd = stft.stft(td_filter, L, hop, win=windows.hann(L))
 plt.figure()
-stft.spectroplot(Ztd.T, L, hop, L - hop, Fs, 1000, 1)
+stft.spectroplot(Ztd.T, L, hop, Fs, 1000, 1)
 plt.title('TD filtered spectrum')
 
 # STFT-domain processing
@@ -89,7 +89,7 @@ fd_filter = stft.istft(
     zp_front=zp_front)
 Zfd = stft.stft(fd_filter, L, hop, win=windows.hann(L))
 plt.figure()
-stft.spectroplot(Zfd.T, L, hop, L - hop, Fs, 1000, 1)
+stft.spectroplot(Zfd.T, L, hop, Fs, 1000, 1)
 plt.title('STFT filtered spectrum')
 
 # plot the difference between the two signals
