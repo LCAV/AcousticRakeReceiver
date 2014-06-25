@@ -50,13 +50,13 @@ mic1 = [2, 1.5]
 M = 10
 d = 0.08
 phi = -np.pi / 2.2
+mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
 
+# define the processing type
 L = 2048
 hop = 1024
 zp = 1024
-
-mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'FrequencyDomain', L, hop, zp, zp)
-#mics = bf.Beamformer.circular2D(mic1, M, phi, d*M/2./np.pi, Fs, 'FrequencyDomain', L, hop, zp, zp)
+mics.setProcessing('FrequencyDomain', L, hop, zp, zp)
 
 # create the room with sources and mics
 room1 = rg.Room.shoeBox2D(
@@ -76,7 +76,7 @@ room1.compute_RIR()
 room1.simulate()
 
 # save the array signal to file
-mics.to_wav('raw_output.wav', Fs, mono=True, norm=True, type=float)
+mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 
 # create the echo beamformer and add to the room
 max_order = 1

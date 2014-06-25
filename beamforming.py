@@ -115,7 +115,7 @@ def linear2DArray(center, M, phi, d):
         (np.arange(M)[np.newaxis, :] - (M - 1.) / 2.) * u
 
 
-def circular2DArray(center, M, radius, phi0):
+def circular2DArray(center, M, phi0, radius):
     phi = np.arange(M) * 2. * np.pi / M
     return np.array(center)[:, np.newaxis] + radius * \
         np.vstack((np.cos(phi + phi0), np.sin(phi + phi0)))
@@ -152,16 +152,19 @@ class MicrophoneArray(object):
 
     """Microphone array class."""
 
-    def __init__(self, R):
-        self.dim = R.shape[0]  # are we in 2D or in 3D
-        self.M = R.shape[1]   # number of microphones
-        self.R = R            # array geometry
+    def __init__(self, R, Fs):
+        self.dim = R.shape[0]   # are we in 2D or in 3D
+        self.M = R.shape[1]     # number of microphones
+        self.R = R              # array geometry
+
+        self.Fs = Fs            # sampling frequency of microphones
 
         self.signals = None
 
         self.center = np.mean(R, axis=1, keepdims=True)
 
-    def to_wav(self, filename, Fs, mono=False, norm=False, type=float):
+
+    def to_wav(self, filename, mono=False, norm=False, type=float):
         '''
         Save all the signals to wav files
         '''
@@ -191,15 +194,15 @@ class MicrophoneArray(object):
 
         signal = np.array(signal, dtype=type)
 
-        wavfile.write(filename, Fs, signal)
+        wavfile.write(filename, self.Fs, signal)
 
     @classmethod
-    def linear2D(cls, center, M, phi, d):
-        return MicrophoneArray(linear2DArray(center, M, phi, d))
+    def linear2D(cls, Fs, center, M, phi, d):
+        return MicrophoneArray(linear2DArray(center, M, phi, d), Fs)
 
     @classmethod
-    def circular2D(cls, center, M, phi, radius):
-        return MicrophoneArray(circular2DArray(center, M, radius, phi))
+    def circular2D(cls, Fs, center, M, phi, radius):
+        return MicrophoneArray(circular2DArray(center, M, phi, radius), Fs)
 
 
 class Beamformer(MicrophoneArray):
@@ -207,11 +210,27 @@ class Beamformer(MicrophoneArray):
     """Beamformer class. At some point, in some nice way, the design methods
     should also go here. Probably with generic arguments."""
 
-    def __init__(self, R, Fs, processing, *args):
-        MicrophoneArray.__init__(self, R)
+    def __init__(self, R, Fs):
+        MicrophoneArray.__init__(self, R, Fs)
 
-        self.Fs = Fs                    # sampling frequency
-        self.processing = processing    # Time or frequency domain
+        # All of these will be defined in setProcessing
+        self.processing = None          # Time or frequency domain
+        self.N = None
+        self.L = None
+        self.hop = None
+        self.zpf = None
+        self.zpb = None
+
+        self.frequencies = None         # frequencies of weights are defined in processing
+
+        # weights will be computed later, the array is of shape (M, N/2+1)
+        self.weights = None
+
+
+    def setProcessing(self, processing, *args):
+        """ Setup the processing type and parameters """
+
+        self.processing = processing
 
         if processing == 'FrequencyDomain':
             self.L  = args[0]    # frame size
@@ -230,20 +249,14 @@ class Beamformer(MicrophoneArray):
             raise NameError(processing + ': No such type of processing')
 
         # for now only support equally spaced frequencies
-        self.frequencies = np.arange(0, self.N/2+1)/float(self.N)*float(Fs)
+        self.frequencies = np.arange(0, self.N/2+1)/float(self.N)*float(self.Fs)
+
         
-        # weights will be computed later, the array is of shape (M, N/2+1)
-        self.weights = None
-
-
     def __add__(self, y):
+        """ Concatenates two beamformers together """
 
-        if self.processing is 'FrequencyDomain':
-            return Beamformer(np.concatenate((self.R, y.R), axis=1), self.Fs, self.processing, self.L, self.hop, self.zpf, self.zpb)
-        elif self.processing is 'TimeDomain':
-            return Beamformer(np.concatenate((self.R, y.R), axis=1), self.Fs, self.processing, self.N)
-        else:
-            raise NameError('Unknown processing type.')
+        return Beamformer(np.concatenate((self.R, y.R), axis=1), self.Fs)
+
 
     # def steering_vector_2D_ff(self, frequency, phi, attn=False):
     #     phi = np.array([phi]).reshape(phi.size)
@@ -352,63 +365,85 @@ class Beamformer(MicrophoneArray):
             self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
 
 
-    def rakeOneForcingWeights(self, source, interferer, R_n, f):
+    def rakeOneForcingWeights(self, source, interferer, R_n=None):
 
-        A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
-        R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
 
-        A_s      = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
-        R_nq_inv = np.linalg.pinv(R_nq)
-        D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
+        self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
-        self.weights.update( { f : sumcols( mdot( R_nq_inv, A_s, D ) ) } )
+        for i, f in enumerate(self.frequencies):
+            A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
+            R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+
+            A_s      = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
+            R_nq_inv = np.linalg.pinv(R_nq)
+            D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
+
+            self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )
  
 
-    def rakeMaxUDRWeights(self, source, interferer, R_n, f):
+    def rakeMaxUDRWeights(self, source, interferer, R_n=None):
         
-        A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
-        A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
 
-        R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+        self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
-        C = np.linalg.cholesky(R_nq)
-        l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
+        for i, f in enumerate(self.frequencies):
+            A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
+            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
 
-        self.weights.update({f: v[:,np.newaxis, 0]})
+            R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+
+            C = np.linalg.cholesky(R_nq)
+            l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
+
+            self.weights[:,i] = v[:,0]
 
 
-    def SNR(self, source, interferer, R_n, f):
+    def SNR(self, source, interferer, f, R_n=None):
+
+        i_f = np.argmin(np.abs(self.frequencies - f))
 
         # This works at a single frequency because otherwise we need to pass
         # many many covariance matrices. Easy to change though (you can also
         # have frequency independent R_n).
 
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
 
         # To compute the SNR, we /must/ use the real steering vectors, so no
         # far field, and attn=True
-        A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
+        A_good = self.steering_vector_2D_from_point(self.frequencies[i_f], source, attn=True, ff=False)
 
         if interferer is not None:
-            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
+            A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=True, ff=False)
             R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
         else:
             R_nq = R_n
 
-        w = self.weights[f]
+        w = self.weights[:,i_f]
         a_1 = sumcols(A_good)
         return np.real(mdot(H(w), a_1, H(a_1), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
 
 
-    def UDR(self, source, interferer, R_n, f):
-        A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
+    def UDR(self, source, interferer, f, R_n=None):
+
+        i_f = np.argmin(np.abs(self.frequencies - f))
+
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
+
+        A_good = self.steering_vector_2D_from_point(self.frequencies[i_f], source, attn=True, ff=False)
 
         if interferer is not None:
-            A_bad  = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
+            A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=True, ff=False)
             R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
         else:
             R_nq = R_n
 
-        w = self.weights[f]
+        w = self.weights[:,i_f]
         return np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
 
 
@@ -489,10 +524,10 @@ class Beamformer(MicrophoneArray):
 
 
     @classmethod
-    def linear2D(cls, center, M, phi, d, Fs, proc, *args):
-        return Beamformer(linear2DArray(center, M, phi, d), Fs, proc, *args)
+    def linear2D(cls, Fs, center, M, phi, d):
+        return Beamformer(linear2DArray(center, M, phi, d), Fs)
 
     @classmethod
-    def circular2D(cls, center, M, phi, radius, Fs, proc, *args):
-        return Beamformer(circular2DArray(center, M, radius, phi), Fs, proc, *args)
+    def circular2D(cls, Fs, center, M, phi, radius):
+        return Beamformer(circular2DArray(center, M, phi, radius), Fs)
 

@@ -31,11 +31,8 @@ M = 6
 d = 0.05
 f = 1000
 phi = -np.pi / 3
-<<<<<<< HEAD
-mics = bf.Beamformer.linear2D(mic1, M, 0, d, Fs, 'TimeDomain', 1024) + bf.Beamformer.linear2D(mic1, 4, np.pi / 2, d, Fs, 'TimeDomain', 1024)
-=======
-mics = bf.Beamformer.linear2D(mic1, M, d=d) # + bf.Beamformer.linear2D(mic1, 4, d=d, phi=np.pi / 2)
->>>>>>> b48e16641bbb057c05d05e9a04252eb68f7a83b0
+mics = bf.Beamformer.linear2D(Fs, mic1, M, 0, d) + bf.Beamformer.linear2D(Fs, mic1, M, phi, d)
+mics.frequencies = np.array([f])
 
 # create the room with sources
 room1 = rg.Room.shoeBox2D(
@@ -48,30 +45,22 @@ room1.addSource(source1)
 room1.addSource(source2)
 
 # create the echo beamformer and add to the room
-<<<<<<< HEAD
-mics.echoBeamformerWeights(
-    room1.sources[0].getImages(
-        max_order=1), room1.sources[1].getImages(
-            max_order=1))
-=======
 mics.rakeMaxUDRWeights(room1.sources[0].getImages(max_order=3), 
                        room1.sources[1].getImages(max_order=3), 
-                       0.001 * np.eye(M),
-                       f)
->>>>>>> b48e16641bbb057c05d05e9a04252eb68f7a83b0
+                       R_n=0.001 * np.eye(mics.M))
 room1.addMicrophoneArray(mics)
 
 print 'SNRs'
-print mics.SNR(room1.sources[0].getImages(max_order=0), room1.sources[1].getImages(max_order=0), np.eye(M), f)
-print mics.SNR(room1.sources[0].getImages(max_order=1), room1.sources[1].getImages(max_order=1), np.eye(M), f)
-print mics.SNR(room1.sources[0].getImages(max_order=2), room1.sources[1].getImages(max_order=2), np.eye(M), f)
-print mics.SNR(room1.sources[0].getImages(max_order=3), room1.sources[1].getImages(max_order=3), np.eye(M), f)
+print mics.SNR(room1.sources[0].getImages(max_order=0), room1.sources[1].getImages(max_order=0), f, R_n=np.eye(mics.M))
+print mics.SNR(room1.sources[0].getImages(max_order=1), room1.sources[1].getImages(max_order=1), f, R_n=np.eye(mics.M))
+print mics.SNR(room1.sources[0].getImages(max_order=2), room1.sources[1].getImages(max_order=2), f, R_n=np.eye(mics.M))
+print mics.SNR(room1.sources[0].getImages(max_order=3), room1.sources[1].getImages(max_order=3), f, R_n=np.eye(mics.M))
 
 print 'UDRs'
-print mics.UDR(room1.sources[0].getImages(max_order=0), room1.sources[1].getImages(max_order=0), np.eye(M), f)
-print mics.UDR(room1.sources[0].getImages(max_order=1), room1.sources[1].getImages(max_order=1), np.eye(M), f)
-print mics.UDR(room1.sources[0].getImages(max_order=2), room1.sources[1].getImages(max_order=2), np.eye(M), f)
-print mics.UDR(room1.sources[0].getImages(max_order=3), room1.sources[1].getImages(max_order=3), np.eye(M), f)
+print mics.UDR(room1.sources[0].getImages(max_order=0), room1.sources[1].getImages(max_order=0), f, R_n=np.eye(mics.M))
+print mics.UDR(room1.sources[0].getImages(max_order=1), room1.sources[1].getImages(max_order=1), f, R_n=np.eye(mics.M))
+print mics.UDR(room1.sources[0].getImages(max_order=2), room1.sources[1].getImages(max_order=2), f, R_n=np.eye(mics.M))
+print mics.UDR(room1.sources[0].getImages(max_order=3), room1.sources[1].getImages(max_order=3), f, R_n=np.eye(mics.M))
 
 
 # plot the result
