@@ -21,7 +21,7 @@ max_order = 4
 M = 12
 d = 0.2
 frequencies = np.arange(100, 4000, 100)
-mics = bf.Beamformer.linear2D(mic1, M, d=d)
+mics = bf.Beamformer.linear2D(Fs, mic1, M, 0, d)
 
 
 n_monte_carlo = 100
@@ -39,6 +39,7 @@ for i, f in enumerate(frequencies):
         room1 = rg.Room.shoeBox2D(
             p1,
             p2,
+            Fs,
             max_order=max_order,
             absorption=absorption)
         room1.addSource(source1)
