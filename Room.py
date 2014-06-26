@@ -300,7 +300,7 @@ class Room(object):
                 rx[d:d + len(sig) + len(h) - 1] += fftconvolve(h, sig)
 
     @classmethod
-    def shoeBox2D(cls, p1, p2, Fs, max_order=1, absorption=1.):
+    def shoeBox2D(cls, p1, p2, Fs, **kwargs):
         '''
         Create a new Shoe Box room geometry.
         Arguments:
@@ -313,7 +313,7 @@ class Room(object):
         corners = np.array(
             [[p1[0], p2[0], p2[0], p1[0]], [p1[1], p1[1], p2[1], p2[1]]])
 
-        return Room(corners, Fs, absorption=absorption, max_order=max_order)
+        return Room(corners, Fs, **kwargs)
 
     @classmethod
     def area(cls, corners):
