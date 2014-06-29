@@ -44,13 +44,8 @@ for i, f in enumerate(frequencies):
         room1.addSource(source1)
         room1.addMicrophoneArray(mics)
 
-        A = mics.steering_vector_2D_from_point(
-            f,
-            room1.sources[0].getImages(
-                max_order=2),
-            attn=True)
-        SNR_gain[
-            i] += np.linalg.norm(np.sum(A, axis=1)) ** 2 / np.linalg.norm(A[:, 0]) ** 2
+        A = mics.steering_vector_2D_from_point(f, room1.sources[0].getImages(max_order=2), attn=True)
+        SNR_gain[i] += np.linalg.norm(np.sum(A, axis=1)) ** 2 / np.linalg.norm(A[:, 0]) ** 2
 
     SNR_gain[i] /= n_monte_carlo
 
