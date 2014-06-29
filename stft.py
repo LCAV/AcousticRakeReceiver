@@ -43,10 +43,14 @@ def overlap_add(in1, in2, L):
 
 
 # Nicely plot the spectrogram
-def spectroplot(Z, N, L, D, Fs, fdiv=None, tdiv=None):
+def spectroplot(Z, N, hop, Fs, fdiv=None, tdiv=None, 
+        vmin=None, vmax=None, cmap=None, interpolation='none'):
 
     plt.imshow(
-        10 * np.log10(np.abs(Z[:N / 2 + 1, :])), aspect='auto', origin='lower')
+        20 * np.log10(np.abs(Z[:N / 2 + 1, :])), 
+        aspect='auto', 
+        origin='lower',
+        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
 
     # label y axis correctly
     plt.ylabel('Freq [Hz]')
@@ -60,12 +64,12 @@ def spectroplot(Z, N, L, D, Fs, fdiv=None, tdiv=None):
     # label x axis correctly
     plt.xlabel('Time [s]')
     xticks = plt.getp(plt.gca(), 'xticks')
-    plt.setp(plt.gca(), 'xticklabels', xticks / float(Fs) * L)
+    plt.setp(plt.gca(), 'xticklabels', xticks / float(Fs) * hop)
     if (tdiv is not None):
-        unit = float(L) / Fs
+        unit = float(hop) / Fs
         length = unit * Z.shape[1]
         tick_lbls = np.arange(0, int(length), tdiv)
-        tick_locs = tick_lbls * Fs / L
+        tick_locs = tick_lbls * Fs / hop
         plt.xticks(tick_locs, tick_lbls)
 
     plt.colorbar(orientation='horizontal')

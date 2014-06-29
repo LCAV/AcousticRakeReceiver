@@ -47,16 +47,16 @@ signal2 = u.highpass(signal2, Fs)
 
 # create a microphone array
 mic1 = [2, 1.5]
-M = 9
-d = 0.10
-phi = -np.pi / 3
+M = 10
+d = 0.08
+phi = -np.pi / 2.2
+mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
 
-L = 128
-hop = 64
-zp = 64
-
-#mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'FrequencyDomain', L, hop, zp, zp)
-mics = bf.Beamformer.linear2D(mic1, M, phi, d, Fs, 'TimeDomain', 4096)
+# define the processing type
+L = 2048
+hop = 1024
+zp = 1024
+mics.setProcessing('FrequencyDomain', L, hop, zp, zp)
 
 # create the room with sources and mics
 room1 = rg.Room.shoeBox2D(
@@ -76,24 +76,20 @@ room1.compute_RIR()
 room1.simulate()
 
 # save the array signal to file
-mics.to_wav('raw_output.wav', Fs)
+mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 
 # create the echo beamformer and add to the room
-max_order = 3
+max_order = 1
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-mics.echoBeamformerWeights(good_source, bad_source, rcond=1e-3)
-#mics.rakeDelayAndSumWeights(good_source)
+mics.echoBeamformerWeights(good_source, bad_source, rcond=1e-3, attn=True, ff=False)
 
+# process the signal through the beamformer
 processed = mics.process()
 
-# clip the signal over 16 bit precision
-clipped = u.clip(processed, 2 ** 15 - 1, -2 ** 15)
+input_signal = u.normalize(mics.signals[mics.M / 2])
 
-input_signal = mics.signals[mics.M / 2]
-
-hp_sig = u.highpass(clipped, Fs, fc=200)
-output = np.array(hp_sig/hp_sig.max(), dtype=float)
+output = np.array(u.normalize(processed), dtype=float)
 
 wavfile.write('proc_output.wav', Fs, output)
 
@@ -106,14 +102,8 @@ mics.plot()
 
 # open and plot the two signals
 plt.figure()
-plt.subplot(2, 2, 1)
-u.time_dB(input_signal, Fs)
-plt.subplot(2, 2, 2)
-u.time_dB(clipped, Fs)
-plt.subplot(2, 2, 3)
-u.spectrum(input_signal, Fs, 1024)
-plt.subplot(2, 2, 4)
-u.spectrum(clipped, Fs, 1024)
+u.comparePlot(input_signal, output, Fs, 400, 
+        title1='Mic input', title2='Beamformer output')
 
 # show all plots
 plt.show()
