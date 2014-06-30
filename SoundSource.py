@@ -53,15 +53,27 @@ class SoundSource(object):
 
         self.signal = signal
 
-    def getImages(self, max_order=None):
+    def getImages(self, max_order=None, max_distance=None, n_nearest=None, ref_point=None):
+
+        # TO DO: Add also n_strongest
+
+        # TO DO: Make some of these thing exclusive (e.g. can't have n_nearest
+        # AND n_strongest (although could have max_order AND n_nearest)
+
+        # TO DO: Make this more efficient if bottleneck (unlikely)
 
         if (max_order is None):
-            max_order = len(images)
+            max_order = len(self.images)
 
         # stack source and all images
         img = np.array([self.position]).T
         for o in xrange(max_order):
             img = np.concatenate((img, self.images[o]), axis=1)
+
+        if (n_nearest is not None):
+            dist = np.sum((img - ref_point)**2, axis=0)
+            i_nearest = dist.argsort()[0:n_nearest]
+            img = img[:,i_nearest]
 
         return img
 
