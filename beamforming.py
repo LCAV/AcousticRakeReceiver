@@ -91,6 +91,8 @@ def echo_beamformer(A_good, A_bad, R_n=None, rcond=1e-15):
     if R_n is None:
         R_n = np.zeros(A_good.shape[0])
 
+
+    # TO DO: Fix this (check for numerical rank, use the low rank approximation)
     K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
     return K_inv.dot(a_1) / mdot(H(a_1), K_inv, a_1)
 
@@ -250,7 +252,6 @@ class Beamformer(MicrophoneArray):
 
         # for now only support equally spaced frequencies
         self.frequencies = np.arange(0, self.N/2+1)/float(self.N)*float(self.Fs)
-
         
     def __add__(self, y):
         """ Concatenates two beamformers together """
@@ -330,10 +331,21 @@ class Beamformer(MicrophoneArray):
         proj -= proj.max()
 
         self.weights = np.exp(2j * np.pi * 
-                self.frequencies[:, np.newaxis] * proj / constants.c).T
+        self.frequencies[:, np.newaxis] * proj / constants.c).T
 
 
-    def echoBeamformerWeights(self, source, interferer, R_n=None, 
+    def rakeDelayAndSumWeights(self, source):
+
+        self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
+
+        K = source.shape[1] - 1
+
+        for i, f in enumerate(self.frequencies):
+            W = self.steering_vector_2D_from_point(f, source, attn=False, ff=False)
+            self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
+
+
+    def rakeMaxSINRWeights(self, source, interferer, R_n=None, 
             rcond=1e-15, ff=False, attn=True):
         '''
         This method computes a beamformer focusing on a number of specific sources
@@ -350,19 +362,36 @@ class Beamformer(MicrophoneArray):
         for i,f in enumerate(self.frequencies):
 
             A_good = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
-            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
+
+            if interferer is None:
+                A_bad = np.array([[]])
+            else:
+                A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
+
             self.weights[:,i] = echo_beamformer(A_good, A_bad, R_n, rcond=rcond)[:,0]
 
 
-    def rakeDelayAndSumWeights(self, source):
+    def rakeMaxUDRWeights(self, source, interferer, R_n=None, ff=False, attn=True):
+        
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
 
         self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
-        K = source.shape[1] - 1
-
         for i, f in enumerate(self.frequencies):
-            W = self.steering_vector_2D_from_point(f, source, attn=False, ff=False)
-            self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
+            A_good = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
+
+            if interferer is None:
+                A_bad = np.array([[]])
+            else:
+                A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
+
+            R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+
+            C = np.linalg.cholesky(R_nq)
+            l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
+
+            self.weights[:,i] = v[:,0]
 
 
     def rakeOneForcingWeights(self, source, interferer, R_n=None):
@@ -383,26 +412,8 @@ class Beamformer(MicrophoneArray):
             self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )
  
 
-    def rakeMaxUDRWeights(self, source, interferer, R_n=None):
-        
-        if R_n is None:
-            R_n = np.zeros((self.M, self.M))
 
-        self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
-
-        for i, f in enumerate(self.frequencies):
-            A_good = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
-            A_bad = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
-
-            R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
-
-            C = np.linalg.cholesky(R_nq)
-            l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
-
-            self.weights[:,i] = v[:,0]
-
-
-    def SNR(self, source, interferer, f, R_n=None):
+    def SNR(self, source, interferer, f, R_n=None, dB=False):
 
         i_f = np.argmin(np.abs(self.frequencies - f))
 
@@ -425,26 +436,32 @@ class Beamformer(MicrophoneArray):
 
         w = self.weights[:,i_f]
         a_1 = sumcols(A_good)
-        return np.real(mdot(H(w), a_1, H(a_1), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
+
+        SNR = np.real(mdot(H(w), a_1, H(a_1), w) / mdot(H(w), R_nq, w))
+
+        if dB is True:
+            SNR = 10 * np.log10(SNR)
+
+        return SNR
 
 
-    def UDR(self, source, interferer, f, R_n=None):
+    def UDR(self, source, interferer, f, R_n=None, ff=False, attn=True):
 
         i_f = np.argmin(np.abs(self.frequencies - f))
 
         if R_n is None:
             R_n = np.zeros((self.M, self.M))
 
-        A_good = self.steering_vector_2D_from_point(self.frequencies[i_f], source, attn=True, ff=False)
+        A_good = self.steering_vector_2D_from_point(self.frequencies[i_f], source, attn=attn, ff=ff)
 
         if interferer is not None:
-            A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=True, ff=False)
+            A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=attn, ff=ff)
             R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
         else:
             R_nq = R_n
 
         w = self.weights[:,i_f]
-        return np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), np.linalg.pinv(R_nq), w))
+        return np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), R_nq, w))
 
 
     def process(self):
@@ -455,7 +472,7 @@ class Beamformer(MicrophoneArray):
         if self.processing is 'FrequencyDomain':
 
             # create window function
-            win = np.concatenate((np.zeros(self.zpf), 
+            win = np.concatenate((np.zeros(self.zpf),
                                   windows.hann(self.L), 
                                   np.zeros(self.zpb)))
 
