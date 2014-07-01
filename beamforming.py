@@ -490,17 +490,17 @@ class Beamformer(MicrophoneArray):
         return SNR
 
 
-    def UDR(self, source, interferer, f, R_n=None, ff=False, attn=True):
+    def UDR(self, source, interferer, f, R_n=None):
 
         i_f = np.argmin(np.abs(self.frequencies - f))
 
         if R_n is None:
             R_n = np.zeros((self.M, self.M))
 
-        A_good = self.steering_vector_2D_from_point(self.frequencies[i_f], source, attn=attn, ff=ff)
+        A_good = self.steering_vector_2D_from_point(self.frequencies[i_f], source, attn=True, ff=False)
 
         if interferer is not None:
-            A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=attn, ff=ff)
+            A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=True, ff=False)
             R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
         else:
             R_nq = R_n

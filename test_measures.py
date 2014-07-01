@@ -27,12 +27,12 @@ max_order = 4
 
 # create a microphone array
 mic1 = [2, 3]
-M = 6
-d = 0.1
+M = 12
+d = 0.3
 freqs = np.arange(200, 2000, 1)
 f = 1000
 
-mics = bf.Beamformer.linear2D(Fs, mic1, M, 0, d)
+mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d)
 mics.frequencies = freqs
 
 
@@ -74,7 +74,7 @@ for k in xrange(1 + max_K):
 		           R_n=0.001 * np.eye(mics.M))
 
 # plot the result
-f_plot = np.arange(1000, 1300, 50)
+f_plot = np.arange(1000, 1100, 3)
 room1.plot(freq=f_plot, img_order=1)
 
 plt.show()
