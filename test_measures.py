@@ -74,7 +74,7 @@ for k in xrange(1 + max_K):
 		           R_n=0.001 * np.eye(mics.M))
 
 # plot the result
-f_plot = np.arange(1000, 1300, 4)
+f_plot = np.arange(1000, 1300, 50)
 room1.plot(freq=f_plot, img_order=1)
 
 plt.show()

@@ -17,18 +17,26 @@ def clip(signal, high, low):
 
 def normalize(signal, bits=None):
     '''
-    normalize a signal to be in the range of signed integers with a given number of bits
-    default number of bits is 16
+    normalize to be in a given range. The default is to normalize the maximum
+    amplitude to be one. An optional argument allows to normalize the signal
+    to be within the range of a given signed integer representation of bits.
     '''
 
-    signal /= np.abs(signal).max()
+    s = signal.copy()
+
+    s /= np.abs(s).max()
 
     # if one wants to scale for bits allocated
     if bits is not None:
-        signal *= 2 ** (bits - 1)
-        signal = clip(signal, 2 ** (bits - 1) - 1, -2 ** (bits - 1))
+        s *= 2 ** (bits - 1)
+        s = clip(signal, 2 ** (bits - 1) - 1, -2 ** (bits - 1))
 
-    return signal
+    return s
+
+
+def angle_from_points(x1, x2):
+
+    return np.angle((x1[0,0]-x2[0,0]) + 1j*(x1[1,0] - x2[1,0]))
 
 
 def normalize_pwr(sig1, sig2):
@@ -41,7 +49,7 @@ def normalize_pwr(sig1, sig2):
     p2 = np.mean(sig2 ** 2)
 
     # normalize
-    return sig1 * np.sqrt(p2 / p1)
+    return sig1.copy() * np.sqrt(p2 / p1)
 
 
 def highpass(signal, Fs, fc=constants.fc_hp, plot=False):
@@ -76,7 +84,7 @@ def highpass(signal, Fs, fc=constants.fc_hp, plot=False):
         plt.grid()
 
     # apply the filter
-    signal = lfilter(b, a, signal)
+    signal = lfilter(b, a, signal.copy())
 
     return signal
 
@@ -137,41 +145,53 @@ def dB(signal):
     return 20*np.log10(np.abs(signal))
 
 
-def comparePlot(signal1, signal2, Fs, N, title1=None, title2=None):
+def comparePlot(signal1, signal2, Fs, fft_size=512, norm=False, equal=False, title1=None, title2=None):
 
     import matplotlib.pyplot as plt
 
+    td_amp = np.maximum(np.abs(signal1).max(), np.abs(signal2).max())
+
+    if norm:
+        if equal:
+            signal1 /= np.abs(signal1).max()
+            signal2 /= np.abs(signal2).max()
+        else:
+            signal1 /= td_amp
+            signal2 /= td_amp
+        td_amp = 1.
+
     plt.subplot(2,2,1)
-    #time_dB(signal1, Fs)
-    plt.plot(signal1)
-    plt.ylim(-1, 1)
+    plt.plot(np.arange(len(signal1))/float(Fs), signal1)
+    plt.axis('tight')
+    plt.ylim(-td_amp, td_amp)
     if title1 is not None:
         plt.title(title1)
 
     plt.subplot(2,2,2)
-    #time_dB(signal2, Fs)
-    plt.plot(signal2)
-    plt.ylim(-1, 1)
+    plt.plot(np.arange(len(signal2))/float(Fs), signal2)
+    plt.axis('tight')
+    plt.ylim(-td_amp, td_amp)
     if title2 is not None:
         plt.title(title2)
 
+    from constants import eps
     import stft
     import windows
 
-    F1 = stft.stft(signal1, N, N / 2, win=windows.hann(N))
-    F2 = stft.stft(signal2, N, N / 2, win=windows.hann(N))
+    F1 = stft.stft(signal1, fft_size, fft_size / 2, win=windows.hann(fft_size))
+    F2 = stft.stft(signal2, fft_size, fft_size / 2, win=windows.hann(fft_size))
 
-    vmax = np.maximum(dB(F1).max(), dB(F2).max())
-    vmin = np.minimum(dB(F1).min(), dB(F2).min())
+    vmax = np.maximum(dB(F1+eps).max(), dB(F2+eps).max())
+    vmin = np.minimum(dB(F1+eps).min(), dB(F2+eps).min())
 
     cmap = 'jet'
     interpolation='sinc'
 
     plt.subplot(2,2,3)
-    stft.spectroplot(F1.T, N, N / 2, Fs, vmin=vmin, vmax=vmax,
-            cmap=plt.get_cmap(cmap), interpolation=interpolation)
+    stft.spectroplot(F1.T, fft_size, fft_size / 2, Fs, vmin=vmin, vmax=vmax,
+            cmap=plt.get_cmap(cmap), interpolation=None)
 
     plt.subplot(2,2,4)
-    stft.spectroplot(F2.T, N, N / 2, Fs, vmin=vmin, vmax=vmax, 
-            cmap=plt.get_cmap(cmap), interpolation=interpolation)
+    stft.spectroplot(F2.T, fft_size, fft_size / 2, Fs, vmin=vmin, vmax=vmax, 
+            cmap=plt.get_cmap(cmap), interpolation=None)
 

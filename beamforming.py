@@ -247,6 +247,8 @@ class Beamformer(MicrophoneArray):
         elif processing == 'TimeDomain':
             self.N = args[0]                    # filter length
             if self.N % 2 is not 0: self.N += 1     # ensure even length
+        elif processing == 'Total':
+            self.N = self.signals.shape[1]
         else:
             raise NameError(processing + ': No such type of processing')
 
@@ -280,7 +282,7 @@ class Beamformer(MicrophoneArray):
             # TO DO 1: This will mean slightly different absolute value for
             # every entry, even within the same steering vector. Perhaps a
             # better paradigm is far-field with phase carrier.
-            return 1 / (4 * np.pi) / D * np.exp(-1j * omega * D / constants.c)
+            return 1. / (4 * np.pi) / D * np.exp(-1j * omega * D / constants.c)
         else:
             return np.exp(-1j * omega * D / constants.c)
 
@@ -317,6 +319,49 @@ class Beamformer(MicrophoneArray):
         return self.frequencies[i_freq], bfresp
 
 
+    def response_from_point(self, x, frequency):
+
+        i_freq = np.argmin(np.abs(self.frequencies - frequency))
+
+        # For the moment assume that we are in 2D
+        bfresp = np.dot(H(self.weights[:,i_freq]), self.steering_vector_2D_from_point(
+            self.frequencies[i_freq], x, attn=True, ff=False))
+
+        return self.frequencies[i_freq], bfresp
+
+
+    def plot_response_from_point(self, x, legend=None):
+
+        if np.rank(x) == 0:
+            x = np.array([x])
+
+        import matplotlib.pyplot as plt
+
+        HF = np.zeros((x.shape[1], self.frequencies.shape[0]), dtype=complex)
+        for k,p in enumerate(x.T):
+            for i,f in enumerate(self.frequencies):
+                r = np.dot(H(self.weights[:,i]), 
+                        self.steering_vector_2D_from_point(f, p, attn=True, ff=False))
+                HF[k,i] = r[0]
+
+
+        plt.subplot(2,1,1)
+        plt.title('Beamformer response')
+        for hf in HF:
+            plt.plot(self.frequencies, np.abs(hf))
+        plt.ylabel('Modulus')
+        plt.axis('tight')
+        plt.legend(legend)
+
+        plt.subplot(2,1,2)
+        for hf in HF:
+            plt.plot(self.frequencies, np.unwrap(np.angle(hf)))
+        plt.ylabel('Phase')
+        plt.xlabel('Frequency [Hz]')
+        plt.axis('tight')
+        plt.legend(legend)
+
+
     def farFieldWeights(self, phi):
         '''
         This method computes weight for a far field at infinity
@@ -346,7 +391,7 @@ class Beamformer(MicrophoneArray):
 
 
     def rakeMaxSINRWeights(self, source, interferer, R_n=None, 
-            rcond=1e-15, ff=False, attn=True):
+            rcond=0., ff=False, attn=True):
         '''
         This method computes a beamformer focusing on a number of specific sources
         and ignoring a number of interferers
@@ -505,7 +550,7 @@ class Beamformer(MicrophoneArray):
         elif self.processing is 'TimeDomain':
 
             # go back to time domain and shift DC to center
-            tw = np.fft.irfft(np.conj(self.weights), axis=1)
+            tw = np.sqrt(self.weights.shape[1])*np.fft.irfft(np.conj(self.weights), axis=1)
             tw = np.concatenate((tw[:, self.N/2:], tw[:, :self.N/2]), axis=1)
 
             from scipy.signal import fftconvolve
@@ -515,6 +560,22 @@ class Beamformer(MicrophoneArray):
             for i in xrange(1, len(self.signals)):
                 output += fftconvolve(tw[i], self.signals[i])
 
+        elif self.processing is 'Total':
+
+            W = np.concatenate((self.weights, np.conj(self.weights[:,-2:0:-1])), axis=1)
+            W[:,0] = np.real(W[:,0])
+            W[:,self.N/2] = np.real(W[:,self.N/2])
+
+            F_sig = np.zeros(self.signals.shape[1], dtype=complex)
+            for i in xrange(self.M):
+                F_sig += np.fft.fft(self.signals[i])*np.conj(W[i,:])
+
+            f_sig = np.fft.ifft(F_sig)
+            print np.abs(np.imag(f_sig)).mean()
+            print np.abs(np.real(f_sig)).mean()
+
+            output = np.real(np.fft.ifft(F_sig))
+
         return output
 
 
@@ -522,11 +583,17 @@ class Beamformer(MicrophoneArray):
 
         import matplotlib.pyplot as plt
 
-        plt.subplot(2, 1, 1)
+        plt.subplot(2, 2, 1)
         plt.plot(self.frequencies, np.abs(self.weights.T))
-        plt.title('Beamforming weights')
+        plt.title('Beamforming weights [modulus]')
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Weight modulus')
+
+        plt.subplot(2, 2, 2)
+        plt.plot(self.frequencies, np.unwrap(np.angle(self.weights.T), axis=0))
+        plt.title('Beamforming weights [phase]')
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Unwrapped phase')
 
         # go back to time domain and shift DC to center
         tw = np.fft.irfft(np.conj(self.weights), axis=1, n=self.N)
