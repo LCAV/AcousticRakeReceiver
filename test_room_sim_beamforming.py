@@ -82,7 +82,7 @@ mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 max_order = 1
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-mics.echoBeamformerWeights(good_source, bad_source, rcond=1e-3, attn=True, ff=False)
+mics.rakeMaxSINRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), rcond=0., attn=True, ff=False)
 
 # process the signal through the beamformer
 processed = mics.process()

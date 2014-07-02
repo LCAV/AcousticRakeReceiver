@@ -136,6 +136,7 @@ class Room(object):
                     i %
                     len(markers)],
                 edgecolor=cmap(1.))
+            ax.text(source.position[0]+0.1, source.position[1]+0.1, str(i))
 
             # draw images
             if (img_order is None):
@@ -152,6 +153,25 @@ class Room(object):
         ax.axis('equal')
 
         return fig, ax
+
+    def plotRIR(self):
+
+        if self.rir == None:
+            self.compute_RIR()
+
+        import matplotlib.pyplot as plt
+
+        M = self.micArray.M
+        S = len(self.sources)
+        for r in xrange(M):
+            for s in xrange(S):
+                h = self.rir[r][s]
+                plt.subplot(M, S, r*S + s + 1)
+                plt.plot(np.arange(len(h)) / float(self.Fs), h)
+                plt.title('RIR: mic'+str(r)+' source'+str(s))
+                if r == M-1:
+                    plt.xlabel('Time [s]')
+
 
     def addMicrophoneArray(self, micArray):
         self.micArray = micArray
@@ -235,22 +255,18 @@ class Room(object):
                 # compute the distance
                 dist = np.sqrt(np.sum((img - mic[:, np.newaxis]) ** 2, axis=0))
                 time = dist / c + self.t0
+                alpha = dmp/(4.*np.pi*dist)
 
-                # the minimum length needed is the maximum time of flight multiplied by Fs
-                # make it twice that amount to minimize aliasing
-                N = 1.1 * np.ceil(time.max() * self.Fs)
+                # the number of samples needed
+                N = np.ceil((time.max() + self.t0) * self.Fs)
 
-                # compute the discrete band-limited spectrum
-                index = np.arange(0, N / 2 + 1)
-                F = np.exp(-2j*np.pi*index[:, np.newaxis]*time[np.newaxis, :]*float(self.Fs)/N)
-                H = np.dot(F, dmp / (4 * np.pi * dist))
+                t = np.arange(N)/float(self.Fs)
+                ir = np.zeros(t.shape)
 
-                # window if required
-                if (window):
-                    H *= np.hanning(N + 1)[N / 2:]
+                for ti, ai in zip(time, alpha):
+                    ir += np.sinc(self.Fs*(t-ti))*ai
 
-                # inverse the spectrum to get the band-limited impulse response
-                h.append(np.fft.irfft(H))
+                h.append(ir)
 
             self.rir.append(h)
 
@@ -284,6 +300,7 @@ class Room(object):
             self.sources[i].signal) + np.floor(self.sources[i].delay * self.Fs)
         max_sig_len = np.array([f(i) for i in xrange(S)]).max()
         L = max_len_rir + max_sig_len - 1
+        if L%2 == 1: L += 1
 
         # the array that will receive all the signals
         self.micArray.signals = np.zeros((M, L))
