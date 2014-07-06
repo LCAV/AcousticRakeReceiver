@@ -1,7 +1,6 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 import Room as rg
@@ -81,9 +80,9 @@ mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 
 # create the echo beamformer and add to the room
 max_order = 3
-good_source = room1.sources[0].getImages(max_order=max_order)
-bad_source = room1.sources[1].getImages(max_order=max_order)
-mics.rakeMaxUDRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
+good_source = room1.sources[0].getImages(max_order=1)
+bad_source = room1.sources[1].getImages(max_order=5)
+mics.rakeOneForcingWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
 
 # process the signal through the beamformer
 processed = mics.process()
