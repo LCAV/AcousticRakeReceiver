@@ -78,25 +78,6 @@ def echo_beamformer_cvx(A_good, A_bad):
     return np.array(real_to_complex_vector(h.value))
 
 
-def echo_beamformer(A_good, A_bad, R_n=None, rcond=1e-15):
-
-    # Use the fact that this is just MaxSINR with a particular covariance
-    # matrix, and a particular steering vector. TODO: For more microphones
-    # than steering vectors, K is rank-deficient. Is the solution still fine?
-    # The answer seems to be yes.
-
-    a_1 = sumcols(A_good)
-    a_bad = sumcols(A_bad)
-
-    if R_n is None:
-        R_n = np.zeros(A_good.shape[0])
-
-
-    # TO DO: Fix this (check for numerical rank, use the low rank approximation)
-    K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
-    return K_inv.dot(a_1) / mdot(H(a_1), K_inv, a_1)
-
-
 def distance(X, Y):
     # Assume X, Y are arrays, *not* matrices
     X = np.array(X)
@@ -390,13 +371,37 @@ class Beamformer(MicrophoneArray):
             self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
 
 
+
+    def rakeOneForcingWeights(self, source, interferer, R_n=None, ff=False, attn=True):
+
+        if R_n is None:
+            R_n = np.zeros((self.M, self.M))
+
+        self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
+
+        for i, f in enumerate(self.frequencies):
+            if interferer is None:
+                A_bad = np.array([[]])
+            else:
+                A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
+
+            R_nq     = R_n + sumcols(A_bad).dot(H(sumcols(A_bad)))
+
+            A_s      = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
+            R_nq_inv = np.linalg.pinv(R_nq)
+            D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
+
+            self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )[:,0]
+
     def rakeMaxSINRWeights(self, source, interferer, R_n=None, 
             rcond=0., ff=False, attn=True):
         '''
         This method computes a beamformer focusing on a number of specific sources
-        and ignoring a number of interferers
-        source: source locations
-        interferer: interferers locations
+        and ignoring a number of interferers.
+
+        INPUTS
+          * source     : source locations
+          * interferer : interferer locations
         '''
 
         if R_n is None:
@@ -413,7 +418,12 @@ class Beamformer(MicrophoneArray):
             else:
                 A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
 
-            self.weights[:,i] = echo_beamformer(A_good, A_bad, R_n, rcond=rcond)[:,0]
+            a_good = sumcols(A_good)
+            a_bad = sumcols(A_bad)
+
+            # TO DO: Fix this (check for numerical rank, use the low rank approximation)
+            K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
+            self.weights[:,i] = (K_inv.dot(a_good) / mdot(H(a_good), K_inv, a_good))[:,0]
 
 
     def rakeMaxUDRWeights(self, source, interferer, R_n=None, ff=False, attn=True):
@@ -431,35 +441,12 @@ class Beamformer(MicrophoneArray):
             else:
                 A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
 
-            R_nq = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
+            R_nq = R_n + sumcols(A_bad).dot(H(sumcols(A_bad)))
 
             C = np.linalg.cholesky(R_nq)
             l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
 
             self.weights[:,i] = v[:,0]
-
-
-    def rakeOneForcingWeights(self, source, interferer, R_n=None, ff=False, attn=True):
-
-        if R_n is None:
-            R_n = np.zeros((self.M, self.M))
-
-        self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
-
-        for i, f in enumerate(self.frequencies):
-            if interferer is None:
-                A_bad = np.array([[]])
-            else:
-                A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
-
-            R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
-
-            A_s      = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
-            R_nq_inv = np.linalg.pinv(R_nq)
-            D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
-
-            self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )[:,0]
- 
 
 
     def SNR(self, source, interferer, f, R_n=None, dB=False):
