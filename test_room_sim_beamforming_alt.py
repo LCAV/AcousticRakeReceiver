@@ -98,12 +98,14 @@ room1.plot(img_order=1, freq=[500, 1000, 2000])
 
 # plot the weights
 plt.figure()
-mics.plot()
+mics.plot(sum_ir=True)
 
 # open and plot the two signals
 plt.figure()
 u.comparePlot(input_signal, output, Fs, 400, 
         title1='Mic input', title2='Beamformer output')
+
+
 
 # show all plots
 plt.show()

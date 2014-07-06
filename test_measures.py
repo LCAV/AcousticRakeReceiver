@@ -49,20 +49,20 @@ room1.addSource(source2)
 
 max_K = 10
 
-# create the echo beamformer and add to the room
-mics.rakeMaxSINRWeights(room1.sources[0].getImages(n_nearest=max_K, ref_point=mics.center), 
-                        room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
-                        R_n=0.001 * np.eye(mics.M),
-                        ff=False,
-                        attn=True)
-
-room1.addMicrophoneArray(mics)
-
 
 print 'SNRs'
 for k in xrange(1 + max_K):
-	print mics.SNR(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
-		           room1.sources[1].getImages(n_nearest=k, ref_point=mics.center), 
+# create the echo beamformer and add to the room
+	mics.rakeOneForcingWeights(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
+	                        room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+	                        R_n=0.001 * np.eye(mics.M),
+	                        ff=False,
+	                        attn=True)
+
+	room1.addMicrophoneArray(mics)
+
+	print mics.SNR(room1.sources[0].getImages(n_nearest=max_K, ref_point=mics.center), 
+		           room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
 		           f, 
 		           R_n=0.001 * np.eye(mics.M))
 

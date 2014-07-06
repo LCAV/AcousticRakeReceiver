@@ -11,8 +11,8 @@ import beamforming as bf
 from scipy.io import wavfile
 
 # Room 1 : Shoe box
-p1 = np.array([-1, 0])
-p2 = np.array([5, 4])
+p1 = np.array([0, 0])
+p2 = np.array([4, 6])
 
 # The first signal is Homer
 source1 = [1.2, 1.5]
@@ -36,6 +36,7 @@ sigma2 = 1e-2
 mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d)
 mics.frequencies = freqs
 
+# How much to simulate?
 max_K = 20
 n_monte_carlo = 100
 
@@ -90,7 +91,7 @@ for K in range(1, 1+max_K):
         UDR_DS[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                 f, 
-                                R_n=0.001 * np.eye(mics.M))
+                                R_n=sigma2 * np.eye(mics.M))
 
 
         #--------------------------------------------------------------------
@@ -112,7 +113,7 @@ for K in range(1, 1+max_K):
         UDR_MaxSINR[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                  room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
-                                 R_n=0.001 * np.eye(mics.M))
+                                 R_n=sigma2 * np.eye(mics.M))
 
 
         #--------------------------------------------------------------------
@@ -134,7 +135,7 @@ for K in range(1, 1+max_K):
         UDR_MaxSINR_FF[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                  room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
-                                 R_n=0.001 * np.eye(mics.M))
+                                 R_n=sigma2 * np.eye(mics.M))
 
         #--------------------------------------------------------------------
         # Rake Max-SINR-FF without attenuating the steering vectors
@@ -155,7 +156,7 @@ for K in range(1, 1+max_K):
         UDR_MaxSINR_FF_noattn[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                          room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                          f, 
-                                         R_n=0.001 * np.eye(mics.M))
+                                         R_n=sigma2 * np.eye(mics.M))
 
 
         #--------------------------------------------------------------------
@@ -163,7 +164,7 @@ for K in range(1, 1+max_K):
         #--------------------------------------------------------------------
 
         mics.rakeMaxUDRWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
-                                room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=K, ref_point=mics.center), 
                                 R_n=sigma2 * np.eye(mics.M),
                                 ff=False,
                                 attn=True)
@@ -177,14 +178,14 @@ for K in range(1, 1+max_K):
         UDR_MaxUDR[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                  room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
-                                 R_n=0.001 * np.eye(mics.M))
+                                 R_n=sigma2 * np.eye(mics.M))
 
         #--------------------------------------------------------------------
         # One-Forcing
         #--------------------------------------------------------------------
 
-        mics.rakeOneForcingWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
-                                room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+        mics.rakeOneForcingWeights(room1.sources[0].getImages(n_nearest=2, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=K, ref_point=mics.center), 
                                 R_n=sigma2 * np.eye(mics.M),
                                 ff=False,
                                 attn=True)
@@ -193,12 +194,12 @@ for K in range(1, 1+max_K):
         SNR_OneForcing[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                  room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
-                                 R_n=sigma2 * np.eye(mics.M),
+                                 R_n=sigma2*np.eye(mics.M),
                                  dB=True)
         UDR_OneForcing[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                  room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
-                                 R_n=0.001 * np.eye(mics.M))
+                                 R_n=sigma2 * np.eye(mics.M))
 
 
     SNR_DS[K-1] /= float(n_monte_carlo)
@@ -219,18 +220,33 @@ for K in range(1, 1+max_K):
 
 
 # Plot the results
-plt.figure
+#
+# Make SublimeText use iPython, right? currently it uses python... at least make sure that it uses the correct one.
+#
+plt.figure()
 plt.plot(range(1, 1+max_K), np.concatenate((SNR_DS, 
-                                            SNR_MaxSINR, 
-                                            SNR_MaxSINR_FF, 
-                                            SNR_MaxSINR_FF_noattn), axis=1))
-plt.show()
+                                            SNR_MaxSINR,
+                                            SNR_MaxUDR,
+                                            SNR_OneForcing), axis=1))
 
-plt.figure
+plt.figure()
 plt.plot(range(1, 1+max_K), np.concatenate((UDR_DS, 
                                             UDR_MaxSINR, 
-                                            UDR_MaxSINR_FF, 
-                                            UDR_MaxSINR_FF_noattn, 
                                             UDR_MaxUDR,
                                             UDR_OneForcing), axis=1))
+
 plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+p
