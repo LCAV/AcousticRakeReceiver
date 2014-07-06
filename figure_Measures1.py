@@ -37,10 +37,22 @@ mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d)
 mics.frequencies = freqs
 
 max_K = 20
-n_monte_carlo = 1000
+n_monte_carlo = 100
 
-SNR = np.zeros((max_K, 1))
-UDR = np.zeros((max_K, 1))
+SNR_DS                = np.zeros((max_K, 1))
+SNR_MaxSINR           = np.zeros((max_K, 1))
+SNR_MaxSINR_FF        = np.zeros((max_K, 1))
+SNR_MaxSINR_FF_noattn = np.zeros((max_K, 1))
+SNR_MaxUDR            = np.zeros((max_K, 1))
+SNR_OneForcing        = np.zeros((max_K, 1))
+
+UDR_DS                = np.zeros((max_K, 1))
+UDR_MaxSINR           = np.zeros((max_K, 1))
+UDR_MaxSINR_FF        = np.zeros((max_K, 1))
+UDR_MaxSINR_FF_noattn = np.zeros((max_K, 1))
+UDR_MaxUDR            = np.zeros((max_K, 1))
+UDR_OneForcing        = np.zeros((max_K, 1))
+
 
 for K in range(1, 1+max_K):
     for n in xrange(n_monte_carlo):
@@ -59,35 +71,166 @@ for K in range(1, 1+max_K):
         room1.addSource(source1)
         room1.addSource(source2)
 
-        # create the echo beamformer and add to the room
+        # Create different beamformers and evaluate corresponding performance measures
+
+        #--------------------------------------------------------------------
+        # Rake Delay-and-Sum
+        #--------------------------------------------------------------------
+
+        mics.rakeDelayAndSumWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center),
+                                attn=False,
+                                ff=False)
+        room1.addMicrophoneArray(mics)
+
+        SNR_DS[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                f, 
+                                R_n=sigma2 * np.eye(mics.M),
+                                dB=True)
+        UDR_DS[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                f, 
+                                R_n=0.001 * np.eye(mics.M))
+
+
+        #--------------------------------------------------------------------
+        # Rake Max-SINR
+        #--------------------------------------------------------------------
+
         mics.rakeMaxSINRWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                 room1.sources[1].getImages(n_nearest=K, ref_point=mics.center), 
                                 R_n=sigma2 * np.eye(mics.M),
                                 ff=False,
                                 attn=True)
-
         room1.addMicrophoneArray(mics)
 
-        SNR[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=max_K, ref_point=mics.center), 
+        SNR_MaxSINR[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
                                  room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
                                  R_n=sigma2 * np.eye(mics.M),
                                  dB=True)
-        UDR[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
-                                 None, # room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+        UDR_MaxSINR[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
                                  f, 
                                  R_n=0.001 * np.eye(mics.M))
 
-        # print 'K = ', K, '| SNR =', SNR, '| UDR = ', UDR
+
+        #--------------------------------------------------------------------
+        # Rake Max-SINR-FF
+        #--------------------------------------------------------------------
+
+        mics.rakeMaxSINRWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=K, ref_point=mics.center), 
+                                R_n=sigma2 * np.eye(mics.M),
+                                ff=True,
+                                attn=True)
+        room1.addMicrophoneArray(mics)
+
+        SNR_MaxSINR_FF[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                 f, 
+                                 R_n=sigma2 * np.eye(mics.M),
+                                 dB=True)
+        UDR_MaxSINR_FF[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                 f, 
+                                 R_n=0.001 * np.eye(mics.M))
+
+        #--------------------------------------------------------------------
+        # Rake Max-SINR-FF without attenuating the steering vectors
+        #--------------------------------------------------------------------
+
+        mics.rakeMaxSINRWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=K, ref_point=mics.center), 
+                                R_n=sigma2 * np.eye(mics.M),
+                                ff=True,
+                                attn=False)
+        room1.addMicrophoneArray(mics)
+
+        SNR_MaxSINR_FF_noattn[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                         room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                         f, 
+                                         R_n=sigma2 * np.eye(mics.M),
+                                         dB=True)
+        UDR_MaxSINR_FF_noattn[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                         room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                         f, 
+                                         R_n=0.001 * np.eye(mics.M))
 
 
+        #--------------------------------------------------------------------
+        # Rake Max-UDR
+        #--------------------------------------------------------------------
 
-    SNR[K-1] /= float(n_monte_carlo)
-    UDR[K-1] /= float(n_monte_carlo)
-    print 'Computed for K = ', K, '| SNR =', SNR[K-1], '| UDR =', UDR[K-1]
+        mics.rakeMaxUDRWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                R_n=sigma2 * np.eye(mics.M),
+                                ff=False,
+                                attn=True)
+        room1.addMicrophoneArray(mics)
+
+        SNR_MaxUDR[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                 f, 
+                                 R_n=sigma2 * np.eye(mics.M),
+                                 dB=True)
+        UDR_MaxUDR[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                 f, 
+                                 R_n=0.001 * np.eye(mics.M))
+
+        #--------------------------------------------------------------------
+        # One-Forcing
+        #--------------------------------------------------------------------
+
+        mics.rakeOneForcingWeights(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                R_n=sigma2 * np.eye(mics.M),
+                                ff=False,
+                                attn=True)
+        room1.addMicrophoneArray(mics)
+
+        SNR_OneForcing[K-1] += mics.SNR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                 f, 
+                                 R_n=sigma2 * np.eye(mics.M),
+                                 dB=True)
+        UDR_OneForcing[K-1] += mics.UDR(room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), 
+                                 room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                                 f, 
+                                 R_n=0.001 * np.eye(mics.M))
+
+
+    SNR_DS[K-1] /= float(n_monte_carlo)
+    SNR_MaxSINR[K-1] /= float(n_monte_carlo)
+    SNR_MaxSINR_FF[K-1] /= float(n_monte_carlo)
+    SNR_MaxSINR_FF_noattn[K-1] /= float(n_monte_carlo)
+    SNR_MaxUDR[K-1] /= float(n_monte_carlo)
+    SNR_OneForcing[K-1] /= float(n_monte_carlo)
+
+    UDR_DS[K-1] /= float(n_monte_carlo)
+    UDR_MaxSINR[K-1] /= float(n_monte_carlo)
+    UDR_MaxSINR_FF[K-1] /= float(n_monte_carlo)
+    UDR_MaxSINR_FF_noattn[K-1] /= float(n_monte_carlo)
+    UDR_MaxUDR[K-1] /= float(n_monte_carlo)
+    UDR_OneForcing[K-1] /= float(n_monte_carlo)
+
+    print 'Computed for K = ', K, '| SNR =', SNR_MaxSINR[K-1], '| UDR =', UDR_MaxSINR[K-1]
 
 
 # Plot the results
 plt.figure
-plt.plot(range(1, 1+max_K), SNR)
+plt.plot(range(1, 1+max_K), np.concatenate((SNR_DS, 
+                                            SNR_MaxSINR, 
+                                            SNR_MaxSINR_FF, 
+                                            SNR_MaxSINR_FF_noattn), axis=1))
+plt.show()
+
+plt.figure
+plt.plot(range(1, 1+max_K), np.concatenate((UDR_DS, 
+                                            UDR_MaxSINR, 
+                                            UDR_MaxSINR_FF, 
+                                            UDR_MaxSINR_FF_noattn, 
+                                            UDR_MaxUDR,
+                                            UDR_OneForcing), axis=1))
 plt.show()

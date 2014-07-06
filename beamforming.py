@@ -379,7 +379,7 @@ class Beamformer(MicrophoneArray):
         self.frequencies[:, np.newaxis] * proj / constants.c).T
 
 
-    def rakeDelayAndSumWeights(self, source):
+    def rakeDelayAndSumWeights(self, source, attn=False, ff=False):
 
         self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
@@ -439,7 +439,7 @@ class Beamformer(MicrophoneArray):
             self.weights[:,i] = v[:,0]
 
 
-    def rakeOneForcingWeights(self, source, interferer, R_n=None):
+    def rakeOneForcingWeights(self, source, interferer, R_n=None, ff=False, attn=True):
 
         if R_n is None:
             R_n = np.zeros((self.M, self.M))
@@ -447,14 +447,18 @@ class Beamformer(MicrophoneArray):
         self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
         for i, f in enumerate(self.frequencies):
-            A_bad    = self.steering_vector_2D_from_point(f, interferer, attn=True, ff=False)
+            if interferer is None:
+                A_bad = np.array([[]])
+            else:
+                A_bad = self.steering_vector_2D_from_point(f, interferer, attn=attn, ff=ff)
+
             R_nq     = R_n + H(sumcols(A_bad)).dot(sumcols(A_bad))
 
-            A_s      = self.steering_vector_2D_from_point(f, source, attn=True, ff=False)
+            A_s      = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
             R_nq_inv = np.linalg.pinv(R_nq)
             D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
 
-            self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )
+            self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )[:,0]
  
 
 
