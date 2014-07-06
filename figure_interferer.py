@@ -10,11 +10,17 @@ import beamforming as bf
 import windows
 import utilities as u
 
+'''
+This script simulates a scenario where a single source
+of interest is present in a Room.
+'''
+
 # Some simulation parameters
 Fs = 8000
 t0 = 1./(Fs*np.pi*1e-2)  # starting time function of sinc decay in RIR response
 absorption = 0.90
-max_order_sim = 15
+max_order_sim = 10
+sigma2_n = 1e-7          # Noise power (should replace with proper SNR)
 
 # Room 1 : Shoe box
 room_dim = [4, 6]
@@ -25,15 +31,17 @@ source2 = [3, 4]    # interferer
 
 # microphone array design parameters
 mic1 = [2, 1.5]         # position
-M = 6                   # number of microphones
-d = 0.05                # distance between microphones
+M = 8                   # number of microphones
+d = 0.08                # distance between microphones
 phi = 0.                # angle from horizontal
 max_order_design = 1    # maximum image generation used in design
-shape = 'Circular'        # array shape
+shape = 'Linear'        # array shape
 
 # create a microphone array
 if shape is 'Circular':
     mics = bf.Beamformer.circular2D(Fs, mic1, M, phi, d*M/(2*np.pi)) 
+elif shape is 'Poisson':
+    mics = bf.Beamformer.poisson(Fs, mic1, M, d) 
 else:
     mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
 
@@ -64,7 +72,8 @@ room1 = rg.Room.shoeBox2D(
     Fs,
     t0 = t0,
     max_order=max_order_sim,
-    absorption=absorption)
+    absorption=absorption,
+    sigma2_awgn=sigma2_n)
 room1.addSource(source1, signal=signal1, delay=delay1)
 room1.addSource(source2, signal=signal2, delay=delay2)
 room1.addMicrophoneArray(mics)
@@ -78,7 +87,13 @@ room1.simulate()
 # Compute the beamforming weights depending on room geometry
 good_source = room1.sources[0].getImages(max_order=max_order_design)
 bad_source = room1.sources[1].getImages(max_order=max_order_design)
-mics.rakeMaxSINRWeights(good_source, bad_source, R_n = 1e-5*np.eye(mics.M), rcond=0., attn=True, ff=False)
+mics.rakeMaxSINRWeights(good_source, bad_source, 
+                         R_n = sigma2_n*np.eye(mics.M), 
+                         rcond=0., 
+                         attn=True, ff=False)
+
+#I = np.abs(mics.weights) > 1
+#mics.weights[I] *= 1./np.abs(mics.weights[I])
 
 # process the signal through the beamformer
 output = mics.process()
@@ -88,20 +103,21 @@ mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 wavfile.write('proc_output.wav', Fs, u.normalize(output))
 
 # plot the room and beamformer
-room1.plot(img_order=np.minimum(room1.max_order, 1), freq=[500, 1000, 2000])
-
-# plot all the RIR
-plt.figure()
-room1.plotRIR()
-
-# plot the weights
-plt.figure()
-mics.plot()
+# make the picutre 6x10cm ~ 2.4x3.9in
+fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
+        freq=[500, 1500, 2500],
+        figsize=(2.4,3.9),
+        xlim=[-4,8], ylim=[-8,12])
+fig.savefig('figures/room_interferer.pdf')
 
 # Plot the TF of beamformer as seen from source and interferer
 plt.figure()
 mics.plot_response_from_point(np.array([source1, source2]).T, 
                               legend=('source','interferer'))
+
+# Plot the weights in FD and TD
+plt.figure()
+mics.plot()
 
 # open and plot the two signals
 plt.figure()

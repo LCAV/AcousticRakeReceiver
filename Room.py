@@ -8,9 +8,8 @@ import constants
 
 '''
 Room
-A room geometry is defined by all the source and all its images
+A room geometry is defined by all the sources and all their images
 '''
-
 
 class Room(object):
 
@@ -21,6 +20,7 @@ class Room(object):
             t0=0.,
             absorption=1.,
             max_order=1,
+            sigma2_awgn=None,
             sources=None,
             mics=None):
 
@@ -80,14 +80,22 @@ class Room(object):
         else:
             self.rir = []
 
-    def plot(self, img_order=None, freq=None):
+        # ambiant additive white gaussian noise level
+        self.sigma2_awgn = sigma2_awgn
+
+
+    def plot(self, img_order=None, freq=None, figsize=None, xlim=None, ylim=None):
 
         import matplotlib
         from matplotlib.patches import Circle, Wedge, Polygon
         from matplotlib.collections import PatchCollection
         import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots()
+        fig = plt.figure(figsize=figsize)
+        ax = plt.subplot(111,
+                         autoscale_on=False, 
+                         aspect='equal', 
+                         xlim=xlim, ylim=ylim)
 
         # draw room
         polygon = Polygon(self.corners.T, True)
@@ -113,7 +121,7 @@ class Room(object):
                         (self.corners - self.micArray.center),
                         axis=0).max()
                     f0, H = self.micArray.response(phis, f)
-                    H = np.abs(H)/np.abs(H).max()
+                    H = np.abs(H)**2/np.abs(H).max()**2
                     x = np.cos(phis) * H * norm + self.micArray.center[0, 0]
                     y = np.sin(phis) * H * norm + self.micArray.center[1, 0]
                     l = ax.plot(x, y, '--')
@@ -150,7 +158,7 @@ class Room(object):
                            marker=markers[i % len(markers)], edgecolor=cmap(val))
 
         # keep axis equal, or the symmetry is lost
-        ax.axis('equal')
+        #ax.axis('equal')
 
         return fig, ax
 
@@ -315,6 +323,11 @@ class Room(object):
                 d = np.floor(self.sources[s].delay * self.Fs)
                 h = self.rir[m][s]
                 rx[d:d + len(sig) + len(h) - 1] += fftconvolve(h, sig)
+
+            # add white gaussian noise if necessary
+            if self.sigma2_awgn is not None:
+                rx += np.random.normal(0., np.sqrt(self.sigma2_awgn), rx.shape)
+
 
     @classmethod
     def shoeBox2D(cls, p1, p2, Fs, **kwargs):
