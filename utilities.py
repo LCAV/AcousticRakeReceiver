@@ -181,17 +181,21 @@ def comparePlot(signal1, signal2, Fs, fft_size=512, norm=False, equal=False, tit
     F1 = stft.stft(signal1, fft_size, fft_size / 2, win=windows.hann(fft_size))
     F2 = stft.stft(signal2, fft_size, fft_size / 2, win=windows.hann(fft_size))
 
-    vmax = np.maximum(dB(F1+eps).max(), dB(F2+eps).max())
-    vmin = np.minimum(dB(F1+eps).min(), dB(F2+eps).min())
+    # try a fancy way to set the scale to avoid having the spectrum
+    # dominated by a few outliers
+    p_min = 1
+    p_max = 99.5
+    all_vals = np.concatenate((dB(F1+eps), dB(F2+eps))).flatten()
+    vmin, vmax = np.percentile(all_vals, [p_min, p_max])
 
     cmap = 'jet'
     interpolation='sinc'
 
     plt.subplot(2,2,3)
     stft.spectroplot(F1.T, fft_size, fft_size / 2, Fs, vmin=vmin, vmax=vmax,
-            cmap=plt.get_cmap(cmap), interpolation=None)
+            cmap=plt.get_cmap(cmap), interpolation=interpolation)
 
     plt.subplot(2,2,4)
     stft.spectroplot(F2.T, fft_size, fft_size / 2, Fs, vmin=vmin, vmax=vmax, 
-            cmap=plt.get_cmap(cmap), interpolation=None)
+            cmap=plt.get_cmap(cmap), interpolation=interpolation)
 

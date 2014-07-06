@@ -538,6 +538,12 @@ class Beamformer(MicrophoneArray):
                 zp_front=self.zpf,
                 transform=np.fft.irfft)
 
+            # remove the zero padding from output signal
+            if self.zpb is 0:
+                output = output[self.zpf:]
+            else:
+                output = output[self.zpf:-self.zpb]
+
         elif self.processing is 'TimeDomain':
 
             # go back to time domain and shift DC to center
@@ -600,9 +606,24 @@ class Beamformer(MicrophoneArray):
 
     @classmethod
     def linear2D(cls, Fs, center, M, phi, d):
+        ''' Create linear beamformer '''
         return Beamformer(linear2DArray(center, M, phi, d), Fs)
 
     @classmethod
     def circular2D(cls, Fs, center, M, phi, radius):
+        ''' Create circular beamformer'''
         return Beamformer(circular2DArray(center, M, phi, radius), Fs)
+
+    @classmethod
+    def poisson(cls, Fs, center, M, d):
+        ''' Create beamformer with microphone positions drawn from Poisson process '''
+
+        from numpy.random import standard_exponential, randint
+
+        R = d*standard_exponential((2, M))*(2*randint(0,2, (2,M)) - 1)
+        R = R.cumsum(axis=1)
+        R -= R.mean(axis=1)[:,np.newaxis]
+        R += np.array([center]).T
+
+        return Beamformer(R, Fs)
 

@@ -10,23 +10,28 @@ import beamforming as bf
 import windows
 import utilities as u
 
+'''
+This script simulates a scenario where a single source
+of interest is present in a Room.
+'''
+
 # Some simulation parameters
 Fs = 8000
 t0 = 1./(Fs*np.pi*1e-2)  # starting time function of sinc decay in RIR response
 absorption = 0.90
 max_order_sim = 10
-sigma2_n = 1e-7
+sigma2_n = 1e-7          # Noise power (should replace with proper SNR)
 
 # Room 1 : Shoe box
 room_dim = [4, 6]
 
 # the sources
-source1 = [2.5, 4.5]    # good source
-source2 = [2.25, 3]     # interferer
+source1 = [1, 4.5]        # good source
+source2 = [3, 4]    # interferer
 
 # microphone array design parameters
 mic1 = [2, 1.5]         # position
-M = 8                    # number of microphones
+M = 8                   # number of microphones
 d = 0.08                # distance between microphones
 phi = 0.                # angle from horizontal
 max_order_design = 1    # maximum image generation used in design
@@ -35,6 +40,8 @@ shape = 'Linear'        # array shape
 # create a microphone array
 if shape is 'Circular':
     mics = bf.Beamformer.circular2D(Fs, mic1, M, phi, d*M/(2*np.pi)) 
+elif shape is 'Poisson':
+    mics = bf.Beamformer.poisson(Fs, mic1, M, d) 
 else:
     mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
 
@@ -81,9 +88,12 @@ room1.simulate()
 good_source = room1.sources[0].getImages(max_order=max_order_design)
 bad_source = room1.sources[1].getImages(max_order=max_order_design)
 mics.rakeMaxSINRWeights(good_source, bad_source, 
-                        R_n = sigma2_n*np.eye(mics.M), 
-                        rcond=0., 
-                        attn=True, ff=False)
+                         R_n = sigma2_n*np.eye(mics.M), 
+                         rcond=0., 
+                         attn=True, ff=False)
+
+#I = np.abs(mics.weights) > 1
+#mics.weights[I] *= 1./np.abs(mics.weights[I])
 
 # process the signal through the beamformer
 output = mics.process()
@@ -99,12 +109,16 @@ fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1),
         figsize=(2.4,3.9),
         xlim=[-4,8], ylim=[-8,12],
         autoscale_on=False)
-fig.savefig('figures/room_interferer_in_direct_path.pdf')
+fig.savefig('figures/room_interferer.pdf')
 
 # Plot the TF of beamformer as seen from source and interferer
 plt.figure()
 mics.plot_response_from_point(np.array([source1, source2]).T, 
                               legend=('source','interferer'))
+
+# Plot the weights in FD and TD
+plt.figure()
+mics.plot()
 
 # open and plot the two signals
 plt.figure()
