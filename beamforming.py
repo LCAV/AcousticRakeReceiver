@@ -576,7 +576,7 @@ class Beamformer(MicrophoneArray):
         return output
 
 
-    def plot(self):
+    def plot(self, sum_ir=False):
 
         import matplotlib.pyplot as plt
 
@@ -597,7 +597,12 @@ class Beamformer(MicrophoneArray):
         tw = np.concatenate((tw[:,self.N/2:], tw[:, :self.N/2]), axis=1)
 
         plt.subplot(2, 1, 2)
-        plt.plot(np.arange(self.N)/float(self.Fs), tw.T)
+
+        if sum_ir is False:
+            plt.plot(np.arange(self.N)/float(self.Fs), tw.T)
+        else:
+            plt.plot(np.arange(self.N)/float(self.Fs), np.sum(tw.T, axis=1))
+
         plt.title('Beamforming filters')
         plt.xlabel('Time [s]')
         plt.ylabel('Filter amplitude')

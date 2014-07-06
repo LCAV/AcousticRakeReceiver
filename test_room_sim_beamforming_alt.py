@@ -83,7 +83,7 @@ mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 max_order = 3
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-mics.rakeMaxUDRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
+mics.rakeMaxSINRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
 
 # process the signal through the beamformer
 processed = mics.process()
@@ -99,12 +99,14 @@ room1.plot(img_order=1, freq=[500, 1000, 2000])
 
 # plot the weights
 plt.figure()
-mics.plot()
+mics.plot(sum_ir=True)
 
 # open and plot the two signals
 plt.figure()
 u.comparePlot(input_signal, output, Fs, 400, 
         title1='Mic input', title2='Beamformer output')
+
+
 
 # show all plots
 plt.show()
