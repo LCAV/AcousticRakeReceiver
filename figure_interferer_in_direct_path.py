@@ -97,7 +97,8 @@ wavfile.write('proc_output.wav', Fs, u.normalize(output))
 fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
         freq=[500, 1500, 2500],
         figsize=(2.4,3.9),
-        xlim=[-4,8], ylim=[-8,12])
+        xlim=[-4,8], ylim=[-8,12],
+        autoscale_on=False)
 fig.savefig('figures/room_interferer_in_direct_path.pdf')
 
 # Plot the TF of beamformer as seen from source and interferer

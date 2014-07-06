@@ -84,7 +84,7 @@ class Room(object):
         self.sigma2_awgn = sigma2_awgn
 
 
-    def plot(self, img_order=None, freq=None, figsize=None, xlim=None, ylim=None):
+    def plot(self, img_order=None, freq=None, figsize=None, xlim=None, ylim=None, autoscale_on=True):
 
         import matplotlib
         from matplotlib.patches import Circle, Wedge, Polygon
@@ -93,7 +93,7 @@ class Room(object):
 
         fig = plt.figure(figsize=figsize)
         ax = plt.subplot(111,
-                         autoscale_on=False, 
+                         autoscale_on=autoscale_on, 
                          aspect='equal', 
                          xlim=xlim, ylim=ylim)
 
