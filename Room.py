@@ -117,26 +117,37 @@ class Room(object):
             if freq is not None \
                     and type(self.micArray) is bf.Beamformer \
                     and self.micArray.weights is not None:
+
                 freq = np.array(freq)
+                if np.rank(freq) is 0:
+                    freq = np.array([freq])
 
                 # define a new set of colors for the beam patterns
                 newmap = plt.get_cmap('autumn')
                 desat = 0.7
                 ax.set_color_cycle([newmap(k) for k in desat*np.linspace(0,1,len(freq))])
 
-                if np.rank(freq) is 0:
-                    freq = np.array([freq])
+                
+                phis = np.arange(360) * 2 * np.pi / 360.
+                newfreq = np.zeros(freq.shape)
+                H = np.zeros((len(freq), len(phis)), dtype=complex)
                 for i,f in enumerate(freq):
-                    phis = np.arange(360) * 2 * np.pi / 360.
-                    norm = np.linalg.norm(
+                    newfreq[i], H[i] = self.micArray.response(phis, f)
+
+                # normalize max amplitude to one
+                H = np.abs(H)**2/np.abs(H).max()**2
+
+                # a normalization factor according to room size
+                norm = np.linalg.norm(
                         (self.corners - self.micArray.center),
                         axis=0).max()
-                    f0, H = self.micArray.response(phis, f)
-                    H = np.abs(H)**2/np.abs(H).max()**2
-                    x = np.cos(phis) * H * norm + self.micArray.center[0, 0]
-                    y = np.sin(phis) * H * norm + self.micArray.center[1, 0]
+                    
+                # plot all the beam patterns
+                for f,h in zip(newfreq, H):
+                    x = np.cos(phis) * h * norm + self.micArray.center[0, 0]
+                    y = np.sin(phis) * h * norm + self.micArray.center[1, 0]
                     l = ax.plot(x, y, '-', linewidth=0.5)
-                    #lbl = '%.2f' % f0
+                    #lbl = '%.2f' % f
                     #i0 = i*360/len(freq)
                     #ax.text(x[i0], y[i0], lbl, color=plt.getp(l[0], 'color'))
 
