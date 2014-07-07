@@ -87,7 +87,7 @@ wavfile.write('proc_output.wav', Fs, u.normalize(output))
 # plot the room and beamformer
 # make the picutre 6x10cm ~ 2.4x3.9in
 fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=[500, 1500, 2500],
+        freq=[800, 1600],
         figsize=(2.4,3.9), no_axis=True,
         xlim=[-4,8], ylim=[-8,12],
         autoscale_on=False)
