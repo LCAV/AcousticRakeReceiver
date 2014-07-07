@@ -50,7 +50,9 @@ mic1 = [2, 1.5]
 M = 12
 d = 0.08
 phi = -np.pi / 2.2
+#mics = bf.Beamformer.poisson(Fs, mic1, M, d) 
 mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
+#mics = bf.Beamformer.circular2D(Fs, mic1, M, phi, M*d/(2*np.pi)) 
 
 # define the processing type
 L = 2048
@@ -82,7 +84,8 @@ mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 max_order = 3
 good_source = room1.sources[0].getImages(max_order=1)
 bad_source = room1.sources[1].getImages(max_order=5)
-mics.rakeOneForcingWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
+mics.rakeMaxSINRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
+#mics.rakeOneForcingWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
 
 # process the signal through the beamformer
 processed = mics.process()

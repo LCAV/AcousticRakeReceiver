@@ -84,7 +84,7 @@ class Room(object):
         self.sigma2_awgn = sigma2_awgn
 
 
-    def plot(self, img_order=None, freq=None, figsize=None, xlim=None, ylim=None, autoscale_on=True):
+    def plot(self, img_order=None, freq=None, figsize=None, no_axis=False, **kwargs):
 
         import matplotlib
         from matplotlib.patches import Circle, Wedge, Polygon
@@ -92,20 +92,25 @@ class Room(object):
         import matplotlib.pyplot as plt
 
         fig = plt.figure(figsize=figsize)
-        ax = plt.subplot(111,
-                         autoscale_on=autoscale_on, 
-                         aspect='equal', 
-                         xlim=xlim, ylim=ylim)
+
+
+        if no_axis is True:
+            ax = fig.add_axes([0, 0, 1, 1], aspect='equal', **kwargs)
+            ax.axis('off')
+        else:
+            ax = fig.add_subplot(111, aspect='equal', **kwargs)
 
         # draw room
-        polygon = Polygon(self.corners.T, True)
-        p = PatchCollection([polygon], cmap=matplotlib.cm.jet, alpha=0.4)
+        polygons = [Polygon(self.corners.T, True)]
+        p = PatchCollection(polygons, cmap=matplotlib.cm.jet, 
+                facecolor=np.array([1,1,1]), edgecolor=np.array([0,0,0]))
         ax.add_collection(p)
 
         # draw the microphones
         if (self.micArray is not None):
             for mic in self.micArray.R.T:
-                ax.scatter(mic[0], mic[1], marker='x', s=10, c='k')
+                ax.scatter(mic[0], mic[1], 
+                        marker='x', linewidth=0.5, s=2, c='k')
 
             # draw the beam pattern of the beamformer if requested (and
             # available)
@@ -113,6 +118,12 @@ class Room(object):
                     and type(self.micArray) is bf.Beamformer \
                     and self.micArray.weights is not None:
                 freq = np.array(freq)
+
+                # define a new set of colors for the beam patterns
+                newmap = plt.get_cmap('autumn')
+                desat = 0.7
+                ax.set_color_cycle([newmap(k) for k in desat*np.linspace(0,1,len(freq))])
+
                 if np.rank(freq) is 0:
                     freq = np.array([freq])
                 for i,f in enumerate(freq):
@@ -124,10 +135,12 @@ class Room(object):
                     H = np.abs(H)**2/np.abs(H).max()**2
                     x = np.cos(phis) * H * norm + self.micArray.center[0, 0]
                     y = np.sin(phis) * H * norm + self.micArray.center[1, 0]
-                    l = ax.plot(x, y, '--')
-                    lbl = '%.2f' % f0
-                    i0 = i*360/len(freq)
-                    ax.text(x[i0], y[i0], lbl, color=plt.getp(l[0], 'color'))
+                    l = ax.plot(x, y, '-', linewidth=0.5)
+                    #lbl = '%.2f' % f0
+                    #i0 = i*360/len(freq)
+                    #ax.text(x[i0], y[i0], lbl, color=plt.getp(l[0], 'color'))
+
+                ax.legend(freq)
 
         # define some markers for different sources and colormap for damping
         markers = ['o', 's', 'v', '.']

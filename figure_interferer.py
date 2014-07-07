@@ -46,9 +46,9 @@ else:
     mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
 
 # define the array processing type
-L = 8192                # frame length
-hop = 4096              # hop between frames
-zp = 4096               # zero padding (front + back)
+L = 4096                # frame length
+hop = 2048              # hop between frames
+zp = 2048               # zero padding (front + back)
 mics.setProcessing('FrequencyDomain', L, hop, zp, zp)
 
 # The first signal (of interest) is singing
@@ -79,10 +79,10 @@ room1.addSource(source2, signal=signal2, delay=delay2)
 room1.addMicrophoneArray(mics)
 
 # compute RIRs
-room1.compute_RIR()
+#room1.compute_RIR()
 
 # simulate the microphone signals
-room1.simulate()
+#room1.simulate()
 
 # Compute the beamforming weights depending on room geometry
 good_source = room1.sources[0].getImages(max_order=max_order_design)
@@ -96,17 +96,17 @@ mics.rakeMaxSINRWeights(good_source, bad_source,
 #mics.weights[I] *= 1./np.abs(mics.weights[I])
 
 # process the signal through the beamformer
-output = mics.process()
+#output = mics.process()
 
 # save the array signal to file
-mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
-wavfile.write('proc_output.wav', Fs, u.normalize(output))
+#mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
+#wavfile.write('proc_output.wav', Fs, u.normalize(output))
 
 # plot the room and beamformer
 # make the picutre 6x10cm ~ 2.4x3.9in
 fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
         freq=[500, 1500, 2500],
-        figsize=(2.4,3.9),
+        figsize=(2.4,3.9), no_axis=True,
         xlim=[-4,8], ylim=[-8,12],
         autoscale_on=False)
 fig.savefig('figures/room_interferer.pdf')
@@ -121,9 +121,9 @@ plt.figure()
 mics.plot()
 
 # open and plot the two signals
-plt.figure()
-u.comparePlot(mics.signals[mics.M/2], output, Fs, fft_size=400, 
-        norm=True, equal=True, title1='Mic input', title2='Beamformer output')
+#plt.figure()
+#u.comparePlot(mics.signals[mics.M/2], output, Fs, fft_size=400, 
+        #norm=True, equal=True, title1='Mic input', title2='Beamformer output')
 
 # show all plots
 plt.show()
