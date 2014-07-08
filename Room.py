@@ -97,11 +97,18 @@ class Room(object):
         if no_axis is True:
             ax = fig.add_axes([0, 0, 1, 1], aspect='equal', **kwargs)
             ax.axis('off')
+            rect = fig.patch
+            rect.set_facecolor('gray')
+            rect.set_alpha(0.15)
+
         else:
             ax = fig.add_subplot(111, aspect='equal', **kwargs)
 
         # draw room
         polygons = [Polygon(self.corners.T, True)]
+        #if no_axis is True:
+            #r = Rectangle((xlim[0],ylim[0]), xlim[1]-xlim[0], ylim[1]-ylim[0])
+            #polygons.append(r)
         p = PatchCollection(polygons, cmap=matplotlib.cm.jet, 
                 facecolor=np.array([1,1,1]), edgecolor=np.array([0,0,0]))
         ax.add_collection(p)
@@ -143,6 +150,7 @@ class Room(object):
                         axis=0).max()
                     
                 # plot all the beam patterns
+                i = 0
                 for f,h in zip(newfreq, H):
                     x = np.cos(phis) * h * norm + self.micArray.center[0, 0]
                     y = np.sin(phis) * h * norm + self.micArray.center[1, 0]
@@ -150,8 +158,9 @@ class Room(object):
                     #lbl = '%.2f' % f
                     #i0 = i*360/len(freq)
                     #ax.text(x[i0], y[i0], lbl, color=plt.getp(l[0], 'color'))
+                    #i += 1
 
-                ax.legend(freq)
+                #ax.legend(freq)
 
         # define some markers for different sources and colormap for damping
         markers = ['o', 's', 'v', '.']
@@ -168,7 +177,7 @@ class Room(object):
                     i %
                     len(markers)],
                 edgecolor=cmap(1.))
-            ax.text(source.position[0]+0.1, source.position[1]+0.1, str(i))
+            #ax.text(source.position[0]+0.1, source.position[1]+0.1, str(i))
 
             # draw images
             if (img_order is None):
