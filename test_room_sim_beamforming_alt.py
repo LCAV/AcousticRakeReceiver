@@ -1,7 +1,6 @@
 
 import numpy as np
 import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 import Room as rg
@@ -51,7 +50,9 @@ mic1 = [2, 1.5]
 M = 12
 d = 0.08
 phi = -np.pi / 2.2
+
 mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d*np.pi) 
+
 
 # define the processing type
 L = 2048

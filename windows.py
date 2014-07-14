@@ -3,8 +3,6 @@
 import numpy as np
 
 # cosine window function
-
-
 def cosine(N, flag='asymmetric', length='full'):
 
     # first choose the indexes of points to compute
@@ -34,7 +32,7 @@ def cosine(N, flag='asymmetric', length='full'):
     return w
 
 
-# root triangular window function
+# triangular window function
 def triang(N, flag='asymmetric', length='full'):
 
     # first choose the indexes of points to compute
@@ -63,7 +61,7 @@ def triang(N, flag='asymmetric', length='full'):
     return w
 
 
-# root hann window function
+# hann window function
 def hann(N, flag='asymmetric', length='full'):
 
     # first choose the indexes of points to compute
@@ -91,6 +89,31 @@ def hann(N, flag='asymmetric', length='full'):
     # compute window
     return w
 
+
+# Blackman-Harris window
+def blackman_harris(N, flag='asymmetric', length='full'):
+
+    # coefficients
+    a = np.array([.35875, .48829, .14128, .01168])
+
+    # first choose the indexes of points to compute
+    if (length == 'left'):     # left side of window
+        t = np.arange(0, N / 2)
+    elif(length == 'right'):   # right side of window
+        t = np.arange(N / 2, N)
+    else:                   # full window by default
+        t = np.arange(0, N)
+
+    # if asymmetric window, denominator is N, if symmetric it is N-1
+    if (flag == 'symmetric'):
+        t = t / float(N - 1)
+    else:
+        t = t / float(N)
+
+    pi = np.pi
+    w = a[0] - a[1]*np.cos(2*pi*t) + a[2]*np.cos(4*pi*t) + a[3]*np.cos(6*pi*t)
+
+    return w
 
 # Rectangular window function
 def rect(N):

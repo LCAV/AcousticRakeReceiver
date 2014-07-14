@@ -44,7 +44,7 @@ def overlap_add(in1, in2, L):
 
 # Nicely plot the spectrogram
 def spectroplot(Z, N, hop, Fs, fdiv=None, tdiv=None, 
-        vmin=None, vmax=None, cmap=None, interpolation='none'):
+        vmin=None, vmax=None, cmap=None, interpolation='none', colorbar=True):
 
     plt.imshow(
         20 * np.log10(np.abs(Z[:N / 2 + 1, :])), 
@@ -72,7 +72,8 @@ def spectroplot(Z, N, hop, Fs, fdiv=None, tdiv=None,
         tick_locs = tick_lbls * Fs / hop
         plt.xticks(tick_locs, tick_lbls)
 
-    plt.colorbar(orientation='horizontal')
+    if colorbar is True:
+        plt.colorbar(orientation='horizontal')
 
 # A more general implementation of STFT
 
