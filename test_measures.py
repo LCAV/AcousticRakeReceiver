@@ -1,4 +1,4 @@
-	
+    
 import numpy as np
 import matplotlib
 import constants
@@ -46,32 +46,29 @@ room1 = rg.Room.shoeBox2D(
 room1.addSource(source1)
 room1.addSource(source2)
 
-
 max_K = 10
 
-
-print 'SNRs'
 for k in xrange(1 + max_K):
 # create the echo beamformer and add to the room
-	mics.rakeOneForcingWeights(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
-	                        room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
-	                        R_n=0.001 * np.eye(mics.M),
-	                        ff=False,
-	                        attn=True)
+    mics.rakeMaxUDRWeights(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
+                            room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                            R_n=0.001 * np.eye(mics.M),
+                            ff=False,
+                            attn=True)
 
-	room1.addMicrophoneArray(mics)
+    room1.addMicrophoneArray(mics)
 
-	print mics.SNR(room1.sources[0].getImages(n_nearest=max_K, ref_point=mics.center), 
-		           room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
-		           f, 
-		           R_n=0.001 * np.eye(mics.M))
+    print 'SNR'
+    print mics.SNR(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
+                   room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                   f, 
+                   R_n=0.001 * np.eye(mics.M))
 
-print 'UDRs'
-for k in xrange(1 + max_K):
-	print mics.UDR(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
-		           room1.sources[1].getImages(n_nearest=k, ref_point=mics.center), 
-		           f, 
-		           R_n=0.001 * np.eye(mics.M))
+    print 'UDR'
+    print mics.UDR(room1.sources[0].getImages(n_nearest=k, ref_point=mics.center), 
+                   room1.sources[1].getImages(n_nearest=max_K, ref_point=mics.center), 
+                   f, 
+                   R_n=0.001 * np.eye(mics.M))
 
 # plot the result
 f_plot = np.arange(1000, 1100, 3)

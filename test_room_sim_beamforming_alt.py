@@ -34,7 +34,7 @@ signal1 = u.normalize(signal1)
 signal1 = u.highpass(signal1, Fs)
 
 # the second signal (interferer) is some german speech
-source2 = [3, 3]
+source2 = [3, 1]
 rate2, signal2 = wavfile.read('samples/german_speech_8000.wav')
 signal2 = np.array(signal2, dtype=float)
 delay2 = 0.5
@@ -44,14 +44,14 @@ if (rate2 - Fs is not 0):
     signal2 = resample(signal2, np.ceil(len(signal2) / float(rate2) * Fs))
 
 signal2 = u.normalize(signal2)
-signal2 = u.highpass(signal2, Fs)
+signal2 = u.highpass(signal2, Fs, fc=400)
 
 # create a microphone array
 mic1 = [2, 1.5]
 M = 12
 d = 0.08
 phi = -np.pi / 2.2
-mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
+mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d*np.pi) 
 
 # define the processing type
 L = 2048
@@ -80,10 +80,10 @@ room1.simulate()
 mics.to_wav('raw_output.wav', mono=True, norm=True, type=float)
 
 # create the echo beamformer and add to the room
-max_order = 3
+max_order = 2
 good_source = room1.sources[0].getImages(max_order=max_order)
 bad_source = room1.sources[1].getImages(max_order=max_order)
-mics.rakeMaxSINRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=False)
+mics.rakeMaxUDRWeights(good_source, bad_source, R_n=1e-5*np.eye(mics.M), attn=True, ff=True)
 
 # process the signal through the beamformer
 processed = mics.process()

@@ -21,7 +21,7 @@ sigma2_n = 1e-7          # Noise power (should replace with proper SNR)
 room_dim = [4, 6]
 
 # the sources
-source1 = [1, 4.5]        # good source
+source1 = [1, 4.5]      # good source
 
 # microphone array design parameters
 mic1 = [2, 1.5]         # position
