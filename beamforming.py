@@ -360,14 +360,14 @@ class Beamformer(MicrophoneArray):
         self.frequencies[:, np.newaxis] * proj / constants.c).T
 
 
-    def rakeDelayAndSumWeights(self, source, attn=False, ff=False):
+    def rakeDelayAndSumWeights(self, source, interferer=None, R_n=None, attn=True, ff=False):
 
         self.weights = np.zeros((self.M, self.frequencies.shape[0]), dtype=complex)
 
         K = source.shape[1] - 1
 
         for i, f in enumerate(self.frequencies):
-            W = self.steering_vector_2D_from_point(f, source, attn=False, ff=False)
+            W = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
             self.weights[:,i] = 1.0/self.M/(K+1) * np.sum(W, axis=1)
 
 
@@ -428,6 +428,10 @@ class Beamformer(MicrophoneArray):
 
     def rakeMaxUDRWeights(self, source, interferer, R_n=None, ff=False, attn=True):
         
+        if source.shape[1] is 1:
+            self.rakeMaxSINRWeights(source, interferer, R_n=R_n, ff=ff, attn=attn)
+            return
+
         if R_n is None:
             R_n = np.zeros((self.M, self.M))
 
@@ -444,9 +448,9 @@ class Beamformer(MicrophoneArray):
             R_nq = R_n + sumcols(A_bad).dot(H(sumcols(A_bad)))
 
             C = np.linalg.cholesky(R_nq)
-            l, v = np.linalg.eig( mdot( H(np.linalg.inv(C)), A_good, H(A_good), np.linalg.inv(C) ) )
+            l, v = np.linalg.eig( mdot( np.linalg.inv(C), A_good, H(A_good), H(np.linalg.inv(C)) ) )
 
-            self.weights[:,i] = v[:,0]
+            self.weights[:,i] = np.linalg.inv(H(C)).dot(v[:,0])
 
 
     def SNR(self, source, interferer, f, R_n=None, dB=False):
@@ -481,7 +485,7 @@ class Beamformer(MicrophoneArray):
         return SNR
 
 
-    def UDR(self, source, interferer, f, R_n=None):
+    def UDR(self, source, interferer, f, R_n=None, dB=False):
 
         i_f = np.argmin(np.abs(self.frequencies - f))
 
@@ -492,12 +496,17 @@ class Beamformer(MicrophoneArray):
 
         if interferer is not None:
             A_bad  = self.steering_vector_2D_from_point(self.frequencies[i_f], interferer, attn=True, ff=False)
-            R_nq = R_n + sumcols(A_bad) * H(sumcols(A_bad))
+            R_nq = R_n + sumcols(A_bad).dot(H(sumcols(A_bad)))
         else:
             R_nq = R_n
 
         w = self.weights[:,i_f]
-        return np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), R_nq, w))
+
+        UDR = np.real(mdot(H(w), A_good, H(A_good), w) / mdot(H(w), R_nq, w))
+        if dB is True:
+            UDR = 10 * np.log10(UDR)
+
+        return UDR
 
 
     def process(self):
