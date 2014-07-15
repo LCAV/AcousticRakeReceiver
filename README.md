@@ -1,7 +1,7 @@
 Acoustic Rake Receiver
 ======================
 
-This repository contains the all the code to reproduce the results of the paper
+This repository contains all the code to reproduce the results of the paper
 *Raking the Cocktail Party*.
 
 We created a simple framework for simulation of room acoustics in object
