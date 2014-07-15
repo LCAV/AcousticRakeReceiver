@@ -343,6 +343,53 @@ class Beamformer(MicrophoneArray):
         plt.legend(legend)
 
 
+    def plot_beam_response(self):
+
+        phi = np.linspace(-np.pi, np.pi-np.pi/180, 360)
+        freq = self.frequencies
+        #freq = self.frequencies[self.frequencies > constants.fc_hp]
+
+        resp = np.zeros((freq.shape[0], phi.shape[0]), dtype=complex)
+
+        for i,f in enumerate(freq):
+            # For the moment assume that we are in 2D
+            resp[i,:] = np.dot(H(self.weights[:,i]), self.steering_vector_2D(
+                f, phi, constants.ffdist))
+
+        H_abs = np.abs(resp)**2
+        H_abs /= H_abs.max()
+        H_abs = 10*np.log10(H_abs)
+
+        p_min = 0
+        p_max = 100
+        vmin, vmax = np.percentile(H_abs.flatten(), [p_min, p_max])
+
+        import matplotlib.pyplot as plt
+
+        plt.imshow(H_abs, 
+                   aspect='auto', 
+                   origin='lower', 
+                   interpolation='sinc',
+                   vmax=vmax, vmin=vmin)
+
+        plt.xlabel('Angle [rad]')
+        xticks = [-np.pi, -np.pi/2, 0, np.pi/2, np.pi]
+        for i,p in enumerate(xticks):
+            xticks[i] = np.argmin(np.abs(p - phi))
+        xticklabels = ['$-\pi$', '$-\pi/2$', '0', '$\pi/2$', '$\pi$']
+        plt.setp(plt.gca(), 'xticks', xticks)
+        plt.setp(plt.gca(), 'xticklabels', xticklabels)
+
+        plt.ylabel('Freq [kHz]')
+        yticks = np.zeros(4)
+        f_0 = np.floor(self.Fs/8000.)
+        for i in np.arange(1,5):
+            yticks[i-1] = np.argmin(np.abs(freq - 1000.*i*f_0))
+        #yticks = np.array(plt.getp(plt.gca(), 'yticks'), dtype=np.int)
+        plt.setp(plt.gca(), 'yticks', yticks)
+        plt.setp(plt.gca(), 'yticklabels', np.arange(1,5)*f_0)
+
+
     def farFieldWeights(self, phi):
         '''
         This method computes weight for a far field at infinity
@@ -601,21 +648,34 @@ class Beamformer(MicrophoneArray):
         plt.xlabel('Frequency [Hz]')
         plt.ylabel('Unwrapped phase')
 
-        # go back to time domain and shift DC to center
-        tw = np.fft.irfft(np.conj(self.weights), axis=1, n=self.N)
-        tw = np.concatenate((tw[:,self.N/2:], tw[:, :self.N/2]), axis=1)
-
         plt.subplot(2, 1, 2)
 
-        if sum_ir is False:
-            plt.plot(np.arange(self.N)/float(self.Fs), tw.T)
-        else:
-            plt.plot(np.arange(self.N)/float(self.Fs), np.sum(tw.T, axis=1))
+        self.plot_IR(sum_ir=sum_ir)
 
         plt.title('Beamforming filters')
         plt.xlabel('Time [s]')
         plt.ylabel('Filter amplitude')
         plt.axis('tight')
+
+
+    def plot_IR(self, sum_ir=False, norm=None, zp=1, **kwargs):
+
+        # go back to time domain and shift DC to center
+        tw = np.fft.irfft(np.conj(self.weights), axis=1, n=zp*self.N)
+
+        tw = np.concatenate((tw[:,-self.N/2:], tw[:, :self.N/2]), axis=1)
+
+        if sum_ir is True:
+            tw = np.sum(tw.T, axis=1)
+        else:
+            tw = tw.T
+
+        if norm is not None:
+            tw *= norm/np.abs(tw).max()
+
+        import matplotlib.pyplot as plt
+
+        plt.plot(np.arange(tw.shape[0])/float(self.Fs), tw, **kwargs)
 
 
     @classmethod
