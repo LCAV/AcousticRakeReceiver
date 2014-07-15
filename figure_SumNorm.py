@@ -34,7 +34,7 @@ frequencies = np.arange(25, 600, 5)
 
 mics = bf.Beamformer.linear2D(Fs, mic1, M, 0, d)
 
-K_list = [8, 16]
+K_list = [16, 8]
 n_monte_carlo = 1000
 
 SNR_gain = np.zeros((len(K_list), frequencies.size))
@@ -59,7 +59,7 @@ for i_K, K in enumerate(K_list):
             room1.addSource(source1)
             room1.addMicrophoneArray(mics)
 
-            A = mics.steering_vector_2D_from_point(f, room1.sources[0].getImages(n_nearest=K, ref_point=mics.center), attn=False)
+            A = mics.steering_vector_2D_from_point(f, room1.sources[0].getImages(n_nearest=K+1, ref_point=mics.center), attn=False)
             SNR_gain[i_K][i] += np.linalg.norm(np.sum(A, axis=1))**2 / np.linalg.norm(A[:, 0])**2
 
         SNR_gain[i_K][i] /= n_monte_carlo
@@ -99,10 +99,10 @@ plt.xticks(size=9)
 plt.yticks(size=9)
 
 # Do the legend
-plt.legend([r'Simulation, $K=8$',
-            r'Simulation, $K=16$',
-            r'Theorem, $K=8$',
-            r'Theorem, $K=16$'], fontsize=7, loc='upper right', frameon=False, labelspacing=0)
+plt.legend([r'Simulation, $K=16$',
+            r'Simulation, $K=8$',
+            r'Theorem, $K=16$',
+            r'Theorem, $K=8$'], fontsize=7, loc='upper right', frameon=False, labelspacing=0)
 
 # Set labels
 plt.xlabel(r'Frequency [Hz]', fontsize=10)
