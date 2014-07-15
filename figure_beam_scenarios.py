@@ -28,7 +28,7 @@ room_dim = [4, 6]
 
 # the good source is fixed for all 
 good_source = [1, 4.5]       # good source
-normal_interferer = [3, 4]   # interferer
+normal_interferer = [2.8, 4.3]   # interferer
 hard_interferer = [1.5, 3]   # interferer in direct path
 
 # microphone array design parameters

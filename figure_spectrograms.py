@@ -33,15 +33,15 @@ room_dim = [4, 6]
 
 # the good source is fixed for all 
 good_source = [1, 4.5]       # good source
-normal_interferer = [3, 4]   # interferer
+normal_interferer = [2.8, 4.3]   # interferer
 
 # microphone array design parameters
 mic1 = [2, 1.5]         # position
 M = 8                   # number of microphones
 d = 0.08                # distance between microphones
 phi = 0.                # angle from horizontal
-design_order_good = 1   # maximum image generation used in design
-design_order_bad  = 4   # maximum image generation used in design
+design_order_good = 3   # maximum image generation used in design
+design_order_bad  = 3   # maximum image generation used in design
 shape = 'Linear'        # array shape
 
 # create a microphone array
