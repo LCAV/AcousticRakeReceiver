@@ -34,18 +34,17 @@ theoretically and numerically that the rake formulation of the maximum
 signal-to-interference-and-noise beamformer offers significant performance
 boosts in terms of noise suppression and interference cancellation. We
 accompany the paper by the complete simulation and processing chain written in
-Python. The code and the sound samples are available online at
-http://lcav.epfl.ch.
+Python.
 
 
 Authors
 -------
 
-Ivan Dokmani&cacute;, Robin Scheibler, and Martin Vetterli are with [LCAV](http://lcav.epfl.ch)-[EPFL](http://www.epfl.ch).
+Ivan Dokmanić, Robin Scheibler, and Martin Vetterli are with [LCAV](http://lcav.epfl.ch)-[EPFL](http://www.epfl.ch).
 
 #### Contact
 
-[Ivan Dokmani&cacute;](mailto:ivan[dot]dokmanic[at]epfl[dot]ch) <br>
+[Ivan Dokmanić](mailto:ivan[dot]dokmanic[at]epfl[dot]ch) <br>
 EPFL-IC-LCAV <br>
 BC Building <br>
 Station 14 <br>
@@ -91,10 +90,10 @@ The figures and sound samples generated are collected in `figures` and
 License
 -------
 
-Copyright (c) 2014, Ivan Dokmani&cacute;, Robin Scheibler, Martin Vetterli
+Copyright (c) 2014, Ivan Dokmanić, Robin Scheibler, Martin Vetterli
 
 This code is free to reuse for non-commercial purpose such as academic or
 educational. For any other use, please contact the authors.
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">Acoustic Rake Receiver</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="http://lcav.epfl.ch" property="cc:attributionName" rel="cc:attributionURL">Ivan Dokmani&cacute;, Robin Scheibler, Martin Vetterli</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.<br />Based on a work at <a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/LCAV/AcousticRakeReceiver" rel="dct:source">https://github.com/LCAV/AcousticRakeReceiver</a>.
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" property="dct:title">Acoustic Rake Receiver</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="http://lcav.epfl.ch" property="cc:attributionName" rel="cc:attributionURL">Ivan Dokmanić, Robin Scheibler, Martin Vetterli</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.<br />Based on a work at <a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/LCAV/AcousticRakeReceiver" rel="dct:source">https://github.com/LCAV/AcousticRakeReceiver</a>.
 
