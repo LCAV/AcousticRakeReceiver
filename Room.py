@@ -362,6 +362,27 @@ class Room(object):
                 rx += np.random.normal(0., np.sqrt(self.sigma2_awgn), rx.shape)
 
 
+    def dSNR(self, x, source=0):
+        ''' direct Signal-to-Noise Ratio'''
+
+        if source >= len(self.sources):
+            raise NameError('No such source')
+
+        if self.sources[source].signal is None:
+            raise NameError('No signal defined for source ' + str(source))
+
+        if self.sigma2_awgn is None:
+            return float('inf')
+
+        x = np.array(x)
+
+        sigma2_s = np.mean(self.sources[0].signal**2)
+
+        d2 = np.sum((x - self.sources[source].position)**2)
+
+        return sigma2_s/self.sigma2_awgn/(16*np.pi**2*d2)
+
+
     @classmethod
     def shoeBox2D(cls, p1, p2, Fs, **kwargs):
         '''

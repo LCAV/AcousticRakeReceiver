@@ -141,8 +141,11 @@ def spectrum(signal, Fs, N):
     stft.spectroplot(F.T, N, N / 2, Fs)
 
 
-def dB(signal):
-    return 20*np.log10(np.abs(signal))
+def dB(signal, power=False):
+    if power is True:
+        return 10*np.log10(np.abs(signal))
+    else:
+        return 20*np.log10(np.abs(signal))
 
 
 def comparePlot(signal1, signal2, Fs, fft_size=512, norm=False, equal=False, title1=None, title2=None):
