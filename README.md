@@ -4,7 +4,7 @@ Acoustic Rake Receiver
 This repository contains the all the code to reproduce the results of the paper
 *Raking the Cocktail Party*.
 
-We created a simple framework for simulaiton of room acoustics in object
+We created a simple framework for simulation of room acoustics in object
 oriented python and apply it to perform numerical experiments related to
 this paper. All the figures and sound samples can be recreated by calling
 simple scripts leverage this framework. We strongly hope that this code
@@ -54,7 +54,7 @@ Station 14 <br>
 Sound Samples
 -------------
 
-* [sample1](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav) Microphone input signal.
+* [sample1](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav) Simulated microphone input signal.
 * [sample2](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav) Output of conventional Max-SINR beamformer.
 * [sample3](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav) Output of proposed  Rake-Max-SINR beamformer.
 
