@@ -55,9 +55,9 @@ Station 14 <br>
 Sound Samples
 -------------
 
-* [sample1]() Microphone input signal.
-* [sample2]() Output of conventional Max-SINR beamformer.
-* [sample3]() Output of proposed  Rake-Max-SINR beamformer.
+* [sample1](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav) Microphone input signal.
+* [sample2](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav) Output of conventional Max-SINR beamformer.
+* [sample3](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav) Output of proposed  Rake-Max-SINR beamformer.
 
 
 Dependencies
