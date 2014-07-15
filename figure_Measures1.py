@@ -16,10 +16,10 @@ from scipy.io import wavfile
 p1 = np.array([0, 0])
 p2 = np.array([4, 6])
 
-# The first signal is Homer
+# The desired signal
 source1 = [1.2, 1.5]
 
-# the second signal is some speech
+# The interferer
 source2 = [2.5, 2]
 
 # Some simulation parameters
@@ -106,7 +106,6 @@ for K in range(0, max_K):
     
             room1.addMicrophoneArray(mics)
 
-            # TO DO: Average in dB or in the linear scale?
             SNR[bf][K][n] = mics.SNR(room1.sources[0].getImages(n_nearest=K+1, ref_point=mics.center), 
                                      room1.sources[1].getImages(n_nearest=max_K+1, ref_point=mics.center), 
                                      f, 
