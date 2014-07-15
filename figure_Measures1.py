@@ -39,19 +39,17 @@ mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d)
 mics.frequencies = freqs
 
 # How much to simulate?
-max_K = 20
-n_monte_carlo = 1000
+max_K = 21
+n_monte_carlo = 20000
 
 beamformer_names = ['DS',
-                    'MVDR/Max-SINR',
-                    'Rake-DS-attn',
-                    'Rake-DS-noattn',
+                    'Max-SINR',
+                    'Rake-DS',
                     'Rake-MaxSINR',
                     'Rake-MaxUDR']
                     # 'Rake-OF']
 bf_weights_fun   = [mics.rakeDelayAndSumWeights,
                     mics.rakeMaxSINRWeights,
-                    mics.rakeDelayAndSumWeights,
                     mics.rakeDelayAndSumWeights,
                     mics.rakeMaxSINRWeights,
                     mics.rakeMaxUDRWeights]
@@ -94,21 +92,17 @@ for K in range(0, max_K):
         # Create different beamformers and evaluate corresponding performance measures
         for i, bf in enumerate(beamformer_names):
     
-            if (bf is 'DS') or (bf is 'MVDR/Max-SINR'):
+            if (bf is 'DS') or (bf is 'Max-SINR'):
                 n_nearest = 1
             else:
                 n_nearest = K+1
 
-            if (bf is 'Rake-DS-noattn'):
-                attn = False
-            else:
-                attn = True
 
             bf_weights_fun[i](room1.sources[0].getImages(n_nearest=n_nearest, ref_point=mics.center), 
                               room1.sources[1].getImages(n_nearest=n_nearest, ref_point=mics.center), 
                               R_n=sigma2 * np.eye(mics.M),
                               ff=False,
-                              attn=attn)
+                              attn=True)
     
             room1.addMicrophoneArray(mics)
 
@@ -143,46 +137,55 @@ print n_minus + n_plus
 
 # Plot the results
 #
-# Make SublimeText use iPython, right? currently it uses python... at least make sure that it uses the correct one.
-#
 plt.figure(figsize=(4, 3))
 
-n_curves = len(beamformer_names)
-values = range(n_curves)
-cmap = plt.get_cmap('gist_heat')
-cNorm  = colors.Normalize(vmin=0, vmax=values[-1]+1)
-scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap)
+newmap = plt.get_cmap('gist_heat')
+ax1 = plt.gca()
+ax1.set_color_cycle([newmap( k ) for k in np.linspace(0.25,0.9,len(beamformer_names))])
+
+from itertools import cycle
+lines = ['-s','-o','-v','-D','->']
+linecycler = cycle(lines)
 
 for i, bf in enumerate(beamformer_names):
-    color_val = scalarMap.to_rgba(values[-i])
-
     p, = plt.plot(range(0, max_K), 
             np.median(SNR[bf], axis=1), 
+            next(linecycler),
             linewidth=1,
-            color=color_val)
+            markersize=4,
+            markeredgewidth=.5)
 
 plt.fill_between(range(0, max_K),
                  np.median(SNR['Rake-MaxSINR'], axis=1) - SNR_ci['Rake-MaxSINR'],
                  np.median(SNR['Rake-MaxSINR'], axis=1) + SNR_ci['Rake-MaxSINR'],
                  color='grey',
-                 alpha=0.5)
+                 linewidth=0.3,
+                 edgecolor='k',
+                 alpha=0.7)
 
 # Hide right and top axes
-ax1 = plt.gca()
 ax1.spines['top'].set_visible(False)
 ax1.spines['right'].set_visible(False)
-ax1.spines['bottom'].set_position(('outward', 5))
-ax1.spines['left'].set_position(('outward', 10))
+ax1.spines['bottom'].set_position(('outward', 10))
+ax1.spines['left'].set_position(('outward', 15))
 ax1.yaxis.set_ticks_position('left')
 ax1.xaxis.set_ticks_position('bottom')
 
-# Set ticks
+# Make ticks nicer
+ax1.xaxis.set_tick_params(width=.3, length=3)
+ax1.yaxis.set_tick_params(width=.3, length=3)
+
+# Make axis lines thinner
+for axis in ['bottom','left']:
+  ax1.spines[axis].set_linewidth(0.3)
+
+# Set ticks fontsize
 plt.xticks(size=9)
 plt.yticks(size=9)
 
 # Set labels
-plt.xlabel(r'Number of sources $K$', fontsize=10)
-plt.ylabel('Output SINR', fontsize=10)
+plt.xlabel(r'Number of images $K$', fontsize=10)
+plt.ylabel('Output SINR [dB]', fontsize=10)
 plt.tight_layout()
 
 
