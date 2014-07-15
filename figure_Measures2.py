@@ -161,7 +161,6 @@ plt.tight_layout()
 
 plt.legend(beamformer_names, fontsize=7, loc='lower right', frameon=False, labelspacing=0)
 
-plt.savefig('figures/SINR_vs_freq.png')
 plt.savefig('figures/SINR_vs_freq.pdf')
 
 

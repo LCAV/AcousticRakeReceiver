@@ -102,9 +102,6 @@ fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1),
 fig.savefig('figures/scenario_no_interferer_MaxSINR.pdf',
             facecolor=fig.get_facecolor(), edgecolor='none')
 
-plt.figure()
-mics.plot_beam_response()
-
 '''
 SCENARIO 2
 One source or interest and one interefer (easy)
@@ -130,9 +127,6 @@ fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1),
 fig.savefig('figures/scenario_interferer_MaxSINR.pdf',
             facecolor=fig.get_facecolor(), edgecolor='none')
 
-plt.figure()
-mics.plot_beam_response()
-
 '''
 SCENARIO 3
 One source or interest and one interefer (easy)
@@ -153,9 +147,6 @@ fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1),
         autoscale_on=False)
 fig.savefig('figures/scenario_interferer_MaxUDR.pdf',
             facecolor=fig.get_facecolor(), edgecolor='none')
-
-plt.figure()
-mics.plot_beam_response()
 
 '''
 SCENARIO 4
@@ -183,8 +174,3 @@ fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1),
 fig.savefig('figures/scenario_interferer_in_direct_path_MaxSINR.pdf',
             facecolor=fig.get_facecolor(), edgecolor='none')
 
-plt.figure()
-mics.plot_beam_response()
-
-# show all plots
-plt.show()

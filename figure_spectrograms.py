@@ -95,9 +95,9 @@ room1.compute_RIR()
 room1.simulate()
 
 ''' 
-BEAMFORMER 1: MVDR
+BEAMFORMER 1: Max SINR
 '''
-print 'MVDR...'
+print 'Max SINR...'
 
 # Compute the beamforming weights depending on room geometry
 good_sources = room1.sources[0].getImages(max_order=0)
@@ -113,14 +113,10 @@ output_mvdr = mics.process()
 output_mvdr = u.highpass(output_mvdr, Fs)
 output_mvdr = u.normalize(output_mvdr)
 
-plt.figure()
-mics.plot()
-plt.title('MVDR')
-
 '''
-BEAMFORMER 2: MaxSINR
+BEAMFORMER 2: Rake MaxSINR
 '''
-print 'MaxSINR...'
+print 'Rake MaxSINR...'
 
 
 # Compute the beamforming weights depending on room geometry
@@ -136,10 +132,6 @@ output_maxsinr = mics.process()
 # high-pass and normalize
 output_maxsinr = u.highpass(output_maxsinr, Fs)
 output_maxsinr = u.normalize(output_maxsinr)
-
-plt.figure()
-mics.plot()
-plt.title('Max-SINR')
 
 '''
 PLOT SPECTROGRAM
@@ -164,8 +156,8 @@ output_maxsinr = output_maxsinr[:n_lim]
 
 # save all files for listening test
 wavfile.write('output_samples/input_mic.wav', Fs, input_mic)
-wavfile.write('output_samples/output_mvdr.wav', Fs, output_mvdr)
-wavfile.write('output_samples/output_maxsinr.wav', Fs, output_maxsinr)
+wavfile.write('output_samples/output_maxsinr.wav', Fs, output_mvdr)
+wavfile.write('output_samples/output_rake-maxsinr.wav', Fs, output_maxsinr)
 
 # compute time-frequency planes
 F0 = stft(input_clean, fft_size, fft_hop, 
@@ -228,5 +220,3 @@ plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.02)
 
 fig.savefig('figures/spectrograms.pdf', dpi=600)
 
-# show all plots
-plt.show()
