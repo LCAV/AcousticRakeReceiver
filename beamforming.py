@@ -1,5 +1,4 @@
 import numpy as np
-import cvxpy as cp
 from time import sleep
 
 import constants
@@ -34,48 +33,6 @@ def mdot(*args):
         ret = np.dot(ret,a)
 
     return ret
-
-
-def complex_to_real_matrix(A):
-
-    A_real = np.real(A)
-    A_imag = np.imag(A)
-
-    A_ctr = np.vstack([np.hstack([A_real, -A_imag]),
-                       np.hstack([A_imag, A_real])])
-
-    return A_ctr
-
-
-def real_to_complex_vector(b):
-
-    n = b.shape[0] / 2
-    return b[0:n] + 1j * b[n:]
-
-
-def echo_beamformer_cvx(A_good, A_bad):
-
-    # Expand complex matrices and vectors to real matrices and vectors
-    A_good_ctr_H = complex_to_real_matrix(H(A_good))
-    A_bad_ctr_H = complex_to_real_matrix(H(A_bad))
-
-    M = A_good.shape[0]
-    K = A_good.shape[1]
-
-    h = cp.Variable(2 * M)
-
-    # Objective: minimize(norm(h.H * A_good)^2)
-
-    objective = cp.Minimize(cp.sum_entries(cp.square(A_bad_ctr_H * h)))
-
-    # Constraint: sum(h.H * A_good) = 1 + 0*1j
-    constraints = [cp.sum_entries((A_good_ctr_H * h)[0:K]) == 1,
-                   cp.sum_entries((A_good_ctr_H * h)[K:]) == 0]
-
-    problem = cp.Problem(objective, constraints)
-    problem.solve()
-
-    return np.array(real_to_complex_vector(h.value))
 
 
 def distance(X, Y):

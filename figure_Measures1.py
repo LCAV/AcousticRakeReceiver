@@ -194,8 +194,8 @@ plt.tight_layout()
 
 plt.legend(beamformer_names, fontsize=7, loc='upper left', frameon=False, labelspacing=0)
 
-plt.savefig('SINR_vs_K.png')
-plt.savefig('SINR_vs_K.pdf')
+plt.savefig('figures/SINR_vs_K.png')
+plt.savefig('figures/SINR_vs_K.pdf')
 
 plt.close()
 
@@ -253,5 +253,5 @@ plt.tight_layout()
 
 plt.legend(beamformer_names, fontsize=7, loc='upper left', frameon=False, labelspacing=0)
 
-plt.savefig('UDR_vs_K.png')
-plt.savefig('UDR_vs_K.pdf')
+plt.savefig('figures/UDR_vs_K.png')
+plt.savefig('figures/UDR_vs_K.pdf')

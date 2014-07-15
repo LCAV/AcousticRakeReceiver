@@ -163,9 +163,9 @@ output_mvdr = output_mvdr[:n_lim]
 output_maxsinr = output_maxsinr[:n_lim]
 
 # save all files for listening test
-wavfile.write('input_mic.wav', Fs, input_mic)
-wavfile.write('output_mvdr.wav', Fs, output_mvdr)
-wavfile.write('output_maxsinr.wav', Fs, output_maxsinr)
+wavfile.write('output_samples/input_mic.wav', Fs, input_mic)
+wavfile.write('output_samples/output_mvdr.wav', Fs, output_mvdr)
+wavfile.write('output_samples/output_maxsinr.wav', Fs, output_maxsinr)
 
 # compute time-frequency planes
 F0 = stft(input_clean, fft_size, fft_hop, 

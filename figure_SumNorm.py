@@ -109,6 +109,6 @@ plt.xlabel(r'Frequency [Hz]', fontsize=10)
 plt.ylabel('SNR gain [dB]', fontsize=10)
 plt.tight_layout()
 
-plt.savefig('SNR_gain.png')
-plt.savefig('SNR_gain.pdf')
+plt.savefig('figures/SNR_gain.png')
+plt.savefig('figures/SNR_gain.pdf')
 
