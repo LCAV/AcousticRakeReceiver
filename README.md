@@ -7,7 +7,7 @@ This repository contains all the code to reproduce the results of the paper
 We created a simple framework for simulation of room acoustics in object
 oriented python and apply it to perform numerical experiments related to
 this paper. All the figures and sound samples can be recreated by calling
-simple scripts leverage this framework. We strongly hope that this code
+simple scripts leveraging this framework. We strongly hope that this code
 will be useful beyond the scope of this paper and plan to develop it into
 a standalone python package in the future.
 
