@@ -37,7 +37,7 @@ mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d)
 mics.frequencies = freqs
 
 # How much to simulate?
-n_monte_carlo = 100
+n_monte_carlo = 20000
 
 beamformer_names = ['DS',
                     'Max-SINR',
@@ -120,7 +120,6 @@ from itertools import cycle
 lines = ['-s','-o','-v','-D','->']
 linecycler = cycle(lines)
 
-
 newmap = plt.get_cmap('gist_heat')
 ax1 = plt.gca()
 ax1.set_color_cycle([newmap( k ) for k in np.linspace(0.25,0.9,len(beamformer_names))])
@@ -155,7 +154,7 @@ plt.xticks(size=9)
 plt.yticks(size=9)
 
 # Set labels
-plt.xlabel(r'Frequency ($f$, Hz)', fontsize=10)
+plt.xlabel(r'Frequency [Hz]', fontsize=10)
 plt.ylabel('Output SINR [dB]', fontsize=10)
 plt.tight_layout()
 

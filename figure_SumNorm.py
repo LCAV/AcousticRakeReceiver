@@ -30,12 +30,12 @@ Delta = b-a
 # Create a microphone array
 M = 12
 d = 0.2
-frequencies = np.arange(25, 600, 10)
+frequencies = np.arange(25, 600, 5)
 
 mics = bf.Beamformer.linear2D(Fs, mic1, M, 0, d)
 
 K_list = [8, 16]
-n_monte_carlo = 100
+n_monte_carlo = 1000
 
 SNR_gain = np.zeros((len(K_list), frequencies.size))
 SNR_gain_theory = np.zeros((len(K_list), frequencies.size))
@@ -70,22 +70,29 @@ for i_K, K in enumerate(K_list):
 
 # Plot the results
 plt.figure(figsize=(4, 2.5))
-ax = plt.gca()
+ax1 = plt.gca()
 
-newmap = plt.get_cmap('autumn')
-ax.set_color_cycle([newmap( k ) for k in np.linspace(0,.7,len(K_list))])
+newmap = plt.get_cmap('gist_heat')
+ax1.set_color_cycle([newmap( k ) for k in np.linspace(0.25,0.8,2)])
 
 plt.plot(frequencies, 10*np.log10(SNR_gain.T))
-plt.plot(frequencies, 10*np.log10(SNR_gain_theory.T), '.', markersize=4)
+plt.plot(frequencies, 10*np.log10(SNR_gain_theory.T), 'o', markersize=2.5, markeredgewidth=.3)
 
 # Hide right and top axes
-ax1 = plt.gca()
 ax1.spines['top'].set_visible(False)
 ax1.spines['right'].set_visible(False)
-ax1.spines['bottom'].set_position(('outward', 5))
-ax1.spines['left'].set_position(('outward', 10))
+ax1.spines['bottom'].set_position(('outward', 10))
+ax1.spines['left'].set_position(('outward', 15))
 ax1.yaxis.set_ticks_position('left')
 ax1.xaxis.set_ticks_position('bottom')
+
+# Make ticks nicer
+ax1.xaxis.set_tick_params(width=.3, length=3)
+ax1.yaxis.set_tick_params(width=.3, length=3)
+
+# Make axis lines thinner
+for axis in ['bottom','left']:
+  ax1.spines[axis].set_linewidth(0.3)
 
 # Set ticks
 plt.xticks(size=9)
@@ -98,7 +105,7 @@ plt.legend([r'Simulation, $K=8$',
             r'Theorem, $K=16$'], fontsize=7, loc='upper right', frameon=False, labelspacing=0)
 
 # Set labels
-plt.xlabel(r'Frequency ($f$, Hz)', fontsize=10)
+plt.xlabel(r'Frequency [Hz]', fontsize=10)
 plt.ylabel('SNR gain [dB]', fontsize=10)
 plt.tight_layout()
 

@@ -125,18 +125,21 @@ for K in range(0, max_K):
 # positive and for negative differences
 p = 0.5
 for bf in beamformer_names:
-    err = SNR[bf][K] - np.median(SNR[bf][K])
-    n_plus = np.sum(err >= 0)
-    n_minus = np.sum(err < 0)
-    SNR_ci[bf] = np.sort(np.abs(err))[np.floor(p*n_monte_carlo)]
-    SNR_ci_plus[bf] = np.sort(err[err >= 0])[np.floor(p*n_plus)]
-    SNR_ci_minus[bf] = np.sort(-err[err < 0])[np.floor(p*n_minus)]
+    err_SNR = SNR[bf][K] - np.median(SNR[bf][K])
+    n_plus = np.sum(err_SNR >= 0)
+    n_minus = np.sum(err_SNR < 0)
+    SNR_ci[bf] = np.sort(np.abs(err_SNR))[np.floor(p*n_monte_carlo)]
+    SNR_ci_plus[bf] = np.sort(err_SNR[err_SNR >= 0])[np.floor(p*n_plus)]
+    SNR_ci_minus[bf] = np.sort(-err_SNR[err_SNR < 0])[np.floor(p*n_minus)]
 
-print n_minus + n_plus
+    err_UDR = UDR[bf][K] - np.median(UDR[bf][K])
+    UDR_ci[bf] = np.sort(np.abs(err_UDR))[np.floor(p*n_monte_carlo)]
 
 
-# Plot the results
-#
+#---------------------------------------------------------------------
+# Export the SNR figure
+#---------------------------------------------------------------------
+
 plt.figure(figsize=(4, 3))
 
 newmap = plt.get_cmap('gist_heat')
@@ -193,3 +196,62 @@ plt.legend(beamformer_names, fontsize=7, loc='upper left', frameon=False, labels
 
 plt.savefig('SINR_vs_K.png')
 plt.savefig('SINR_vs_K.pdf')
+
+plt.close()
+
+#---------------------------------------------------------------------
+# Export the UDR figure
+#---------------------------------------------------------------------
+
+plt.figure(figsize=(4, 3))
+
+newmap = plt.get_cmap('gist_heat')
+ax1 = plt.gca()
+ax1.set_color_cycle([newmap( k ) for k in np.linspace(0.25,0.9,len(beamformer_names))])
+
+for i, bf in enumerate(beamformer_names):
+    p, = plt.plot(range(0, max_K), 
+            np.median(UDR[bf], axis=1), 
+            next(linecycler),
+            linewidth=1,
+            markersize=4,
+            markeredgewidth=.5)
+
+plt.fill_between(range(0, max_K),
+                 np.median(UDR['Rake-MaxUDR'], axis=1) - UDR_ci['Rake-MaxUDR'],
+                 np.median(UDR['Rake-MaxUDR'], axis=1) + UDR_ci['Rake-MaxUDR'],
+                 color='grey',
+                 linewidth=0.3,
+                 edgecolor='k',
+                 alpha=0.7)
+
+# Hide right and top axes
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+ax1.spines['bottom'].set_position(('outward', 10))
+ax1.spines['left'].set_position(('outward', 15))
+ax1.yaxis.set_ticks_position('left')
+ax1.xaxis.set_ticks_position('bottom')
+
+# Make ticks nicer
+ax1.xaxis.set_tick_params(width=.3, length=3)
+ax1.yaxis.set_tick_params(width=.3, length=3)
+
+# Make axis lines thinner
+for axis in ['bottom','left']:
+  ax1.spines[axis].set_linewidth(0.3)
+
+# Set ticks fontsize
+plt.xticks(size=9)
+plt.yticks(size=9)
+
+# Set labels
+plt.xlabel(r'Number of images $K$', fontsize=10)
+plt.ylabel('Output UDR [dB]', fontsize=10)
+plt.tight_layout()
+
+
+plt.legend(beamformer_names, fontsize=7, loc='upper left', frameon=False, labelspacing=0)
+
+plt.savefig('UDR_vs_K.png')
+plt.savefig('UDR_vs_K.pdf')
