@@ -37,10 +37,10 @@ mics = bf.Beamformer.circular2D(Fs, mic1, M, 0, d)
 mics.frequencies = freqs
 
 # How much to simulate?
-n_monte_carlo = 1000
+n_monte_carlo = 100
 
 beamformer_names = ['DS',
-                    'MVDR/Max-SINR',
+                    'Max-SINR',
                     'Rake-DS',
                     'Rake-MaxSINR',
                     'Rake-MaxUDR']
@@ -59,8 +59,9 @@ for bf in beamformer_names:
     UDR.update({bf: np.zeros((freqs.size, n_monte_carlo))})
 
 K = 10
-max_K = 1000
 
+# How many images there is in the first 15 generations?
+max_K = 1000
 
 for n in xrange(n_monte_carlo):
 
@@ -81,13 +82,13 @@ for n in xrange(n_monte_carlo):
     # Create different beamformers and evaluate corresponding performance measures
     for i_bf, bf in enumerate(beamformer_names):
 
-        if (bf is 'DS') or (bf is 'MVDR/Max-SINR'):
+        if (bf is 'DS') or (bf is 'Max-SINR'):
             n_nearest = 1
         else:
             n_nearest = K+1
 
         bf_weights_fun[i_bf](room1.sources[0].getImages(n_nearest=n_nearest, ref_point=mics.center), 
-                        None, # room1.sources[1].getImages(n_nearest=n_nearest, ref_point=mics.center), 
+                        room1.sources[1].getImages(n_nearest=n_nearest, ref_point=mics.center), 
                         R_n=sigma2 * np.eye(mics.M),
                         ff=False,
                         attn=True)
@@ -97,14 +98,15 @@ for n in xrange(n_monte_carlo):
         # TO DO: Average in dB or in the linear scale?
         for i_f, f in enumerate(freqs):
             SNR[bf][i_f][n] = mics.SNR(room1.sources[0].getImages(n_nearest=K+1, ref_point=mics.center), 
-                                   None, # room1.sources[1].getImages(n_nearest=max_K+1, ref_point=mics.center), 
+                                   room1.sources[1].getImages(n_nearest=max_K+1, ref_point=mics.center), 
                                    f, 
                                    R_n=sigma2 * np.eye(mics.M),
                                    dB=True)
             UDR[bf][i_f][n] = mics.UDR(room1.sources[0].getImages(n_nearest=K+1, ref_point=mics.center), 
                                    room1.sources[1].getImages(n_nearest=max_K+1, ref_point=mics.center), 
                                    f, 
-                                   R_n=sigma2 * np.eye(mics.M))
+                                   R_n=sigma2 * np.eye(mics.M),
+                                   dB=True)
 
     print 'Computed for n =', n
 
@@ -114,36 +116,47 @@ for n in xrange(n_monte_carlo):
 #
 plt.figure(figsize=(4, 3))
 
-n_curves = len(beamformer_names)
-values = range(n_curves)
-cmap = plt.get_cmap('gist_heat')
-cNorm  = colors.Normalize(vmin=0, vmax=values[-1]+1)
-scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap)
+from itertools import cycle
+lines = ['-s','-o','-v','-D','->']
+linecycler = cycle(lines)
+
+
+newmap = plt.get_cmap('gist_heat')
+ax1 = plt.gca()
+ax1.set_color_cycle([newmap( k ) for k in np.linspace(0.25,0.9,len(beamformer_names))])
 
 for i, bf in enumerate(beamformer_names):
-    color_val = scalarMap.to_rgba(values[-i])
-
     p, = plt.plot(freqs,
-                np.mean(SNR[bf], axis=1), 
-                linewidth=1,
-                color=color_val)
+              np.mean(SNR[bf], axis=1), 
+              next(linecycler),
+              linewidth=1,
+              markersize=4,
+              markeredgewidth=.5)
 
 # Hide right and top axes
 ax1 = plt.gca()
 ax1.spines['top'].set_visible(False)
 ax1.spines['right'].set_visible(False)
-ax1.spines['bottom'].set_position(('outward', 5))
-ax1.spines['left'].set_position(('outward', 10))
+ax1.spines['bottom'].set_position(('outward', 10))
+ax1.spines['left'].set_position(('outward', 15))
 ax1.yaxis.set_ticks_position('left')
 ax1.xaxis.set_ticks_position('bottom')
 
-# Set ticks
+# Make ticks nicer
+ax1.xaxis.set_tick_params(width=.3, length=3)
+ax1.yaxis.set_tick_params(width=.3, length=3)
+
+# Make axis lines thinner
+for axis in ['bottom','left']:
+  ax1.spines[axis].set_linewidth(0.3)
+
+# Set ticks fontsize
 plt.xticks(size=9)
 plt.yticks(size=9)
 
 # Set labels
-plt.xlabel(r'Frequency $f$', fontsize=10)
-plt.ylabel('Output SINR', fontsize=10)
+plt.xlabel(r'Frequency ($f$, Hz)', fontsize=10)
+plt.ylabel('Output SINR [dB]', fontsize=10)
 plt.tight_layout()
 
 
