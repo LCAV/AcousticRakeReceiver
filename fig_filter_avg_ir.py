@@ -46,10 +46,9 @@ else:
     mics = bf.Beamformer.linear2D(Fs, mic1, M, phi, d) 
 
 # define the array processing type
-L = 4096                # frame length
-hop = 2048              # hop between frames
-zp = 2048               # zero padding (front + back)
-mics.setProcessing('FrequencyDomain', L, hop, zp, zp)
+N = int(1.5*Fs)                # frame length
+zero_padding_factor = 2
+mics.setProcessing('TimeDomain', N)
 
 # The first signal (of interest) is singing
 rate1, signal1 = wavfile.read('samples/singing_'+str(Fs)+'.wav')
@@ -77,114 +76,96 @@ room1 = rg.Room.shoeBox2D(
 
 # add mic and good source to room
 room1.addSource(good_source, signal=signal1, delay=delay1)
+room1.addSource(normal_interferer, signal=signal2, delay=delay2)
 room1.addMicrophoneArray(mics)
 
-''' 
-SCENARIO 1
-Only one source of interest
-Max-SINR
+# plot the room and beamformer
+fig = plt.figure(figsize=(4,3))
+
+# define a new set of colors for the beam patterns
+newmap = plt.get_cmap('autumn')
+desat = 0.7
+plt.gca().set_color_cycle([newmap(k) for k in desat*np.linspace(0,1,3)])
+
+
 '''
-print 'Scenario1...'
+BEAMFORMER 1
+Rake-MaxSINR
+'''
+print 'Beamformer 1...'
 
 # Compute the beamforming weights depending on room geometry
 good_sources = room1.sources[0].getImages(max_order=max_order_design)
-mics.rakeMaxSINRWeights(good_sources, None,
-                        R_n = sigma2_n*np.eye(mics.M), 
-                        rcond=0., 
-                        attn=True, ff=False)
-
-# plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_no_interferer_MaxSINR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
-
-plt.figure()
-mics.plot_beam_response()
-
-'''
-SCENARIO 2
-One source or interest and one interefer (easy)
-Max-SINR
-'''
-print 'Scenario2...'
-
-room1.addSource(normal_interferer, signal=signal2, delay=delay2)
-
-# Compute the beamforming weights depending on room geometry
 bad_sources = room1.sources[1].getImages(max_order=max_order_design)
 mics.rakeMaxSINRWeights(good_sources, bad_sources, 
                         R_n = sigma2_n*np.eye(mics.M), 
                         rcond=0., 
                         attn=True, ff=False)
 
-# plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_interferer_MaxSINR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
-
-plt.figure()
-mics.plot_beam_response()
+mics.plot_IR(sum_ir=True, norm=1., zp=zero_padding_factor, linewidth=0.5)
 
 '''
-SCENARIO 3
-One source or interest and one interefer (easy)
-Max-UDR (eSNR)
+BEAMFORMER 2
+Rake-MaxUDR (eSNR)
 '''
-print 'Scenario3...'
+print 'Beamformer 2...'
 
 # Compute the beamforming weights depending on room geometry
 mics.rakeMaxUDRWeights(good_sources, bad_sources, 
                         R_n = sigma2_n*np.eye(mics.M), 
                         attn=True, ff=False)
 
-# plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_interferer_MaxUDR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
-
-plt.figure()
-mics.plot_beam_response()
+mics.plot_IR(sum_ir=True, norm=1., zp=zero_padding_factor, linewidth=0.5)
 
 '''
-SCENARIO 4
-One source and one interferer in the direct path (hard)
-Max-SINR
+BEAMFORMER 3
+MaxSINR (MVDR)
 '''
-print 'Scenario4...'
-
-room1.sources.pop()
-room1.addSource(hard_interferer, signal=signal2, delay=delay2)
+print 'Beamformer 3...'
 
 # Compute the beamforming weights depending on room geometry
-bad_sources = room1.sources[1].getImages(max_order=max_order_design)
-mics.rakeMaxSINRWeights(good_sources, bad_sources, 
+mics.rakeMaxSINRWeights(room1.sources[0].getImages(max_order=0),
+                       room1.sources[1].getImages(max_order=0),
                         R_n = sigma2_n*np.eye(mics.M), 
-                        rcond=0., 
+                        rcond=0.,
                         attn=True, ff=False)
 
-# plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_interferer_in_direct_path_MaxSINR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
+mics.plot_IR(sum_ir=True, norm=1., zp=zero_padding_factor, linewidth=0.5)
 
-plt.figure()
-mics.plot_beam_response()
+'''
+FINISH PLOT
+'''
+
+
+leg = ('Rake-MaxSINR', 'Rake-MaxUDR', 'MaxSINR')
+plt.legend(leg, fontsize=7, loc='upper left', frameon=False, labelspacing=0)
+
+# Hide right and top axes
+ax1 = plt.gca()
+
+# prepare axis
+#ax1.autoscale(tight=True, axis='x')
+ax1.spines['top'].set_visible(False)
+ax1.spines['right'].set_visible(False)
+ax1.spines['left'].set_visible(False)
+ax1.spines['bottom'].set_position(('outward', 5))
+ax1.yaxis.set_ticks_position('left')
+ax1.xaxis.set_ticks_position('bottom')
+
+# set x axis limit
+#ax1.set_xlim(0.5, 1.5)
+
+# Set ticks
+plt.xticks(np.arange(0, float(N)/Fs+1, 0.5), size=9)
+plt.xlim(0, 1.5)
+plt.yticks([])
+
+# Set labels
+plt.xlabel(r'Time [s]', fontsize=10)
+plt.ylabel('')
+plt.tight_layout()
+
+fig.savefig('figures/AvgIR.pdf')
 
 # show all plots
 plt.show()
