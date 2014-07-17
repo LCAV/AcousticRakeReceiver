@@ -40,7 +40,11 @@ Python.
 Authors
 -------
 
-Ivan Dokmanić, Robin Scheibler, and Martin Vetterli are with [LCAV](http://lcav.epfl.ch)-[EPFL](http://www.epfl.ch).
+Ivan Dokmanić, Robin Scheibler, and Martin Vetterli are with 
+Laboratory for Audiovisual Communications ([LCAV](http://lcav.epfl.ch)) at 
+[EPFL](http://www.epfl.ch).
+
+<img src="http://lcav.epfl.ch/files/content/sites/lcav/files/images/Home/LCAV_anim_200.gif" style="float:left">
 
 #### Contact
 
