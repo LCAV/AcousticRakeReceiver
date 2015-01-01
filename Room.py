@@ -26,7 +26,7 @@ class Room(object):
 
         # make sure we have an ndarray of the right size
         corners = np.array(corners)
-        if (np.rank(corners) != 2):
+        if (corners.ndim != 2):
             raise NameError('Room corners is a 2D array.')
 
         # make sure the corners are anti-clockwise
@@ -50,9 +50,9 @@ class Room(object):
 
         # list of attenuation factors for the wall reflections
         absorption = np.array(absorption, dtype='float64')
-        if (np.rank(absorption) == 0):
+        if (absorption.ndim == 0):
             self.absorption = absorption * np.ones(self.corners.shape[1])
-        elif (np.rank(absorption) > 1 or self.corners.shape[1] != len(absorption)):
+        elif (absorption.ndim > 1 or self.corners.shape[1] != len(absorption)):
             raise NameError('Absorption and corner must be the same size')
         else:
             self.absorption = absorption
@@ -126,7 +126,7 @@ class Room(object):
                     and self.micArray.weights is not None:
 
                 freq = np.array(freq)
-                if np.rank(freq) is 0:
+                if freq.ndim is 0:
                     freq = np.array([freq])
 
                 # define a new set of colors for the beam patterns
@@ -359,7 +359,7 @@ class Room(object):
 
             # add white gaussian noise if necessary
             if self.sigma2_awgn is not None:
-                rx += np.random.normal(0., np.sqrt(self.sigma2_awgn), rx.shape)
+                rx += np.sqrt(self.sigma2_awgn)*np.random.normal(0., 1., rx.shape)
 
 
     def dSNR(self, x, source=0):

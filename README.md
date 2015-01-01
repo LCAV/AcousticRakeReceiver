@@ -72,6 +72,43 @@ Dependencies
 
 * We use the distribution [anaconda](https://store.continuum.io/cshop/anaconda/) to simplify the setup of the environment.
 
+### PESQ Tool
+
+Download the [source files](http://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en) of the ITU P.862
+compliance tool from the ITU website and compile the utility using the following makefile.
+
+    CC=gcc
+    CFLAGS=
+
+    OBJS=dsp.o pesqdsp.o pesqio.o pesqmod.o pesqmain.o
+    DEPS=dsp.h pesq.h pesqpar.h
+
+    %.o: %.c $(DEPS)
+      $(CC) -c -o $@ $< $(CFLAGS)
+
+    pesq: $(OBJS)
+      $(CC) -o $@ $^ $(CFLAGS)
+
+Then move the `pesq` binary to the root of the repository.
+
+Notes:
+* The files input to the pesq utility must be 16 bit PCM wav files.
+* File names longer than 14 characters (suffix included) cause the utility to crash with the message `Abort trap(6)` or similar.
+
+### TIMIT database
+
+We use the [TIMIT](https://catalog.ldc.upenn.edu/LDC93S1) database for the perceptual evaluation. Obtain a copy
+for yourself through your institution or by paying USD 250. Sorry :(
+
+### Install Scikits.Audiolab
+
+The script `figure_quality.py` requires the module [sckits.audiolab](http://scikits.appspot.com/audiolab) to be installed. This in turns requires
+the `libsndfile` library to work. Here are the steps used to install it on Mac OS X Yosemite using and [Homebrew](http://brew.sh/)
+package manager and pip.
+
+    brew install libsndfile
+    pip install scikits.audiolab
+
 
 Recreate the figures and sound samples
 --------------------------------------

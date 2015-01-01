@@ -270,7 +270,7 @@ class Beamformer(MicrophoneArray):
 
     def plot_response_from_point(self, x, legend=None):
 
-        if np.rank(x) == 0:
+        if x.ndim == 0:
             x = np.array([x])
 
         import matplotlib.pyplot as plt
@@ -615,7 +615,8 @@ class Beamformer(MicrophoneArray):
         plt.axis('tight')
 
 
-    def plot_IR(self, sum_ir=False, norm=None, zp=1, **kwargs):
+    def ir(self, sum_ir=False, norm=None, zp=1, **kwargs):
+        ''' compute time domain impulse response of the beamformer'''
 
         # go back to time domain and shift DC to center
         tw = np.fft.irfft(np.conj(self.weights), axis=1, n=zp*self.N)
@@ -629,6 +630,12 @@ class Beamformer(MicrophoneArray):
 
         if norm is not None:
             tw *= norm/np.abs(tw).max()
+
+        return tw
+
+    def plot_IR(self, sum_ir=False, norm=None, zp=1, **kwargs):
+
+        tw = self.ir(sum_ir=sum_ir, norm=norm, zp=zp, **kwargs)
 
         import matplotlib.pyplot as plt
 
