@@ -29,19 +29,12 @@ def to_16b(signal):
 
 def perceptual_quality_evaluation(n_sources, Loops):
 
-    # Simulation parameters
-    timit_dir = 'timit'
-    files_dir1 = 'timit/TIMIT/TEST/DR1/FAKS0/'
-    files1 = find_all_wav(files_dir1)
-    files_dir2 = 'timit/TIMIT/TEST/DR1/MRJO0/'
-    files2 = find_all_wav(files_dir2)
-
     # we the speech samples used
-    speech_sample1 = files_dir1 + 'SA1.WAV'
-    speech_sample2 = files_dir2 + 'SI1364.WAV'
+    speech_sample1 = 'samples/fq_sample1_8000.wav'
+    speech_sample2 = 'samples/fq_sample2_8000.wav'
 
     # Some simulation parameters
-    Fs = 16000
+    Fs = 8000
     t0 = 1./(Fs*np.pi*1e-2)  # starting time function of sinc decay in RIR response
     absorption = 0.90
     max_order_sim = 10
@@ -104,19 +97,14 @@ def perceptual_quality_evaluation(n_sources, Loops):
     file_bf_suffix = '-' + pid + '.wav'
     file_raw  = 'output_samples/fqraw' + pid + '.wav'
 
-    # we need the scikits audiolab library to read the NIST format files form TIMIT
-    from scikits.audiolab import Sndfile
-
     # Read the two speech samples used
-    f = Sndfile(speech_sample1, 'r')
-    good_signal = f.read_frames(f.nframes)
+    rate, good_signal = wavfile.read(speech_sample1)
     good_signal = np.array(good_signal, dtype=float)
     good_signal = u.normalize(good_signal)
     good_signal = u.highpass(good_signal, Fs)
     good_len = good_signal.shape[0]/float(Fs)
 
-    f = Sndfile(speech_sample2, 'r')
-    bad_signal = f.read_frames(f.nframes)
+    rate, bad_signal = wavfile.read(speech_sample2)
     bad_signal = np.array(bad_signal, dtype=float)
     bad_signal = u.normalize(bad_signal)
     bad_signal = u.highpass(bad_signal, Fs)

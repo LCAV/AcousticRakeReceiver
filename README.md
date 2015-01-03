@@ -75,7 +75,11 @@ Dependencies
 ### PESQ Tool
 
 Download the [source files](http://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en) of the ITU P.862
-compliance tool from the ITU website and compile the utility using the following makefile.
+compliance tool from the ITU website.
+
+#### Unix compilation (Linux/Mac OS X)
+
+Compile the utility using the following makefile.
 
     CC=gcc
     CFLAGS=
@@ -94,6 +98,31 @@ Then move the `pesq` binary to the root of the repository.
 Notes:
 * The files input to the pesq utility must be 16 bit PCM wav files.
 * File names longer than 14 characters (suffix included) cause the utility to crash with the message `Abort trap(6)` or similar.
+
+#### Windows compilation
+
+Open visual studio, create a new project from existing files and select the directory
+containing the source code of PESQ.
+
+        FILE -> New -> Project From Existing Code...
+
+Select `Visual C++` from the dropdown menu, then next.
+**Project file location** : directory containing source code of pesq.
+**Project Name** : pesq
+Then next.
+As project type, select Console application project.
+Then finish.
+
+Go to
+        BUILD -> Configuration Manager...
+and change active solution configuration from Debug to Release. Then Close.
+
+Then BUILD -> Build Solution
+
+Copy the executable pesq.exe to the bin folder.
+Select 
+
+(tested with Micros)
 
 ### TIMIT database
 
