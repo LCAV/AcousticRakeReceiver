@@ -72,3 +72,4 @@ def delay_estimation(x1, x2, L):
         delays[k] = phat(x1[k*L:(k+1)*L], x2[k*L:(k+1)*L])
 
     return int(np.median(delays))
+

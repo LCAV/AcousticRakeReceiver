@@ -3,7 +3,7 @@
 # This script will dispatch the perceptual quality evaluation
 # to multiple process to use most of the computer resource available.
 
-LOOPS=20
+LOOPS=1000
 
 # simulate for 1 source to 21 sources
 for i in {1..11}

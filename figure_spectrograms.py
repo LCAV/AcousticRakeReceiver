@@ -15,6 +15,7 @@ import utilities as u
 
 # Spectrogram figure properties
 figsize=(7.87, 1.65)        # figure size
+figsize2=(7.87, 1.5*1.65)        # figure size
 fft_size = 512              # fft size for analysis
 fft_hop  = 8               # hop between analysis frame
 fft_zp = 512
@@ -147,12 +148,13 @@ input_mic = mics.signals[mics.M/2]
 input_mic = u.highpass(input_mic, Fs)
 input_mic = u.normalize(input_mic)
 
-# remove a bit of signal at the end
+# remove a bit of signal at the end and time-align all signals.
+# the delays were visually measured by plotting the signals
 n_lim = np.ceil(len(input_mic) - t_cut*Fs)
 input_clean = signal1[:n_lim]
-input_mic = input_mic[:n_lim]
-output_mvdr = output_mvdr[:n_lim]
-output_maxsinr = output_maxsinr[:n_lim]
+input_mic = input_mic[105:n_lim+105]
+output_mvdr = output_mvdr[31:n_lim+31]
+output_maxsinr = output_maxsinr[31:n_lim+31]
 
 # save all files for listening test
 wavfile.write('output_samples/input_mic.wav', Fs, input_mic)
@@ -220,3 +222,78 @@ plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.02)
 
 fig.savefig('figures/spectrograms.pdf', dpi=600)
 
+
+# Second figure with difference spectrograms
+
+fig, ax = plt.subplots(figsize=figsize2, nrows=1, ncols=4)
+
+ax = plt.subplot(2,4,1)
+spectroplot(F0.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax,
+        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+ax = plt.subplot(2,4,2)
+spectroplot(F1.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax,
+        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+ax = plt.subplot(2,4,3)
+spectroplot(F2.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax, 
+        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+ax = plt.subplot(2,4,4)
+spectroplot(F3.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax, 
+        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+# now the difference spectrograms
+N2 = (fft_size+fft_zp)/2 + 1
+E1 = np.abs(u.dB(F0.T) - u.dB(F1.T))[:N2,:]
+E2 = np.abs(u.dB(F0.T) - u.dB(F2.T))[:N2,:]
+E3 = np.abs(u.dB(F0.T) - u.dB(F3.T))[:N2,:]
+p_min = 0
+p_max = 100
+all_vals = np.concatenate((E1, E2, E3)).flatten()
+vmin, vmax = np.percentile(all_vals, [p_min, p_max])
+
+ax = plt.subplot(2,4,6)
+plt.imshow(E1,
+        aspect='auto', 
+        origin='lower',
+        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+ax = plt.subplot(2,4,7)
+plt.imshow(E2,
+        aspect='auto', 
+        origin='lower',
+        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+ax = plt.subplot(2,4,8)
+plt.imshow(E3,
+        aspect='auto', 
+        origin='lower',
+        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
+ax.set_ylabel('')
+ax.set_xlabel('')
+ax.axis('off')
+
+plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.02, hspace=0.02)
+
+fig.savefig('figures/spectrograms2.pdf', dpi=600)
+
+plt.show()

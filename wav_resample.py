@@ -29,4 +29,4 @@ wavfile.write(
     Fs,
     np.array(
         signal,
-        dtype=np.int16))
+        dtype=np.float))
