@@ -3,6 +3,8 @@ import numpy as np
 import os
 from stft import stft
 
+import platform
+
 def median(x):
     '''
     m, ci = median(x)
@@ -100,6 +102,9 @@ def pesq(ref, deg, Fs=8000, swap=False, wb=False, bin='./bin/pesq'):
     Uses the utility obtained from ITU P.862
     http://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en
     '''
+
+    if platform.system() is 'Windows':
+        bin = bin + '.exe'
 
     if not os.path.isfile(ref) or not os.path.isfile(deg):
         raise ValueError('Some file did not exist')
