@@ -250,7 +250,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
 
     # save the simulation results to file
     filename = 'sim_data/quality_NSOURCES' + str(n_sources)  \
-                + '_LOOPS' + str(Loops) + 'PID' + pid + '.npz'
+                + '_LOOPS' + str(Loops) + '_PID' + pid + '.npz'
     np.savez(filename, isinr=isinr, osinr=osinr, 
             pesq=pesq, pesq_input=pesq_input,
             bf_names=beamformer_names)
