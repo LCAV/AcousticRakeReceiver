@@ -259,9 +259,14 @@ def perceptual_quality_evaluation(n_sources, Loops):
 if __name__ == '__main__':
 
     import sys
+    import time
 
     nsources = int(sys.argv[1])
     Loops = int(sys.argv[2])
 
+    start = time.time()
     perceptual_quality_evaluation(nsources, Loops)
+    ellapsed = time.time() - start
+
+    print('Time ellapsed: ' + str(ellapsed))
 
