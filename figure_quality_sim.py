@@ -81,9 +81,9 @@ def perceptual_quality_evaluation(n_sources, Loops):
 
     # receptacle arrays
     pesq_input = np.zeros((2,nsources,Loops))
-    pesq = np.zeros((2,nsources,NBF,Loops))
+    pesq = np.zeros((2,NBF,nsources,Loops))
     isinr = np.zeros((nsources,Loops))
-    osinr = np.zeros((nsources,NBF,Loops))
+    osinr = np.zeros((NBF,nsources,Loops))
 
     # since we run multiple thread, we need to uniquely identify filenames
     import os
@@ -114,7 +114,6 @@ def perceptual_quality_evaluation(n_sources, Loops):
     # normalize interference signal to have equal power with desired signal
     bad_signal *= good_sigma2/np.mean(bad_signal**2)
         
-    l = 0
     for s in xrange(nsources):
         for l in xrange(Loops):
 
@@ -222,19 +221,31 @@ def perceptual_quality_evaluation(n_sources, Loops):
                 wavfile.write(fname, Fs, to_16b(sig))
 
                 # compute output SINR
-                osinr[s,i,l] = metrics.snr(reference_n, sig)
+                osinr[i,s,l] = metrics.snr(reference_n, sig)
 
                 # end of beamformers loop
 
-        # Compute PESQ and SINR of raw degraded reference signal
-        isinr[l] = metrics.snr(reference_n, raw_n[:reference_n.shape[0]])
+            # Compute PESQ and SINR of raw degraded reference signal
+            isinr[l] = metrics.snr(reference_n, raw_n[:reference_n.shape[0]])
 
-        # Compute PESQ for all beamformers in parallel
-        pesq_vals = metrics.pesq(file_ref, [file_raw] + files_bf, Fs=Fs)
-        pesq_input[:,l] = pesq_vals[:,0]
-        pesq[:,s,:,l] = pesq_vals[:,1:]
+            # Compute PESQ for all beamformers in parallel
+            pesq_vals = metrics.pesq(file_ref, [file_raw] + files_bf, Fs=Fs)
+            pesq_input[:,s,l] = pesq_vals[:,0]
+            pesq[:,:,s,l] = pesq_vals[:,1:]
 
-        # end of simulation loop
+
+            # end of simulation loop
+
+        print '-------------------------'
+        print 'Number of image sources :',s
+        print 'Median input SINR :',u.dB(np.median(isinr[s,:]))
+        print 'Median input PESQ [MOS Raw/LQO] :',np.median(pesq_input[:,s,:], axis=1)
+        for i, bfr in enumerate(beamformer_names):
+            print bfr
+            print '  median PESQ [MOS Raw/LQO]: ',np.median(pesq[:,i,s,:], axis=1)
+            print '  median oSINR: ',u.dB(np.median(osinr[i,:]))
+
+        # end of number of sources loop
 
 
     # save the simulation results to file
@@ -243,15 +254,6 @@ def perceptual_quality_evaluation(n_sources, Loops):
     np.savez(filename, isinr=isinr, osinr=osinr, 
             pesq=pesq, pesq_input=pesq_input,
             bf_names=beamformer_names)
-
-    print 'Median input SINR :',u.dB(np.median(isinr))
-    print 'Median input PESQ [Raw MOS] :',np.median(pesq_input_rawmos)
-    print 'Median input PESQ [MOS LQO] :',np.median(pesq_input_moslqo)
-    for i, bfr in enumerate(beamformer_names):
-        print bfr
-        print '  median PESQ [Raw MOS]: ',np.median(pesq_rawmos[i,:])
-        print '  median PESQ [MOS LQO]: ',np.median(pesq_moslqo[i,:])
-        print '  median oSINR: ',u.dB(np.median(osinr[i,:]))
 
 
 if __name__ == '__main__':
