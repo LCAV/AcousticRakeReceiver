@@ -131,6 +131,7 @@ for yourself through your institution or by paying USD 250. Sorry :(
 
 ### Install Scikits.Audiolab
 
+Scikits.Audiolab is only necessary if you want to work with the samples from the TIMIT database (that are in the NIST format).
 The script `figure_quality.py` requires the module [sckits.audiolab](http://scikits.appspot.com/audiolab) to be installed. This in turns requires
 the `libsndfile` library to work. Here are the steps used to install it on Mac OS X Yosemite using and [Homebrew](http://brew.sh/)
 package manager and pip.

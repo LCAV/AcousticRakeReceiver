@@ -76,38 +76,45 @@ def itakura_saito(x1, x2, sigma2_n, stft_L=128, stft_hop=128):
 
   IS = (R - np.log(R) - 1.).mean(axis=1)
 
-  '''
-  import matplotlib.pyplot as plt
-  plt.figure()
-  plt.subplot(2,1,1)
-  plt.plot(x1)
-  plt.plot(x2)
-  plt.legend(('x1','x2'))
-  plt.subplot(2,1,2)
-  plt.plot(np.arange(P1.shape[0])[VAD],IS)
-  plt.plot(VAD)
-  plt.show()
-  '''
-
   return np.median(IS)
 
 def snr(ref, deg):
 
     return np.sum(ref**2)/np.sum((ref-deg)**2)
 
-# Perceptual Evaluation of Speech Quality
-def pesq(ref, deg, Fs=8000, swap=False, wb=False, bin='./bin/pesq'):
+# Perceptual Evaluation of Speech Quality for multiple files using multiple threads
+def pesq(ref_file, deg_files, Fs=8000, swap=False, wb=False, bin='./bin/pesq'):
     '''
-    pesq_mos, mos_lqo = pesq(ref, deg, sample_rate=None, bin='./pesq'):
+    pesq_vals = pesq(ref_file, deg_files, sample_rate=None, bin='./bin/pesq'):
     Uses the utility obtained from ITU P.862
     http://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en
+
+    Arguments
+    ---------
+    ref_file:    The filename of the reference file.
+    deg_files:   A list of degraded sound files names.
+    sample_rate: Sample rates of the sound files [8kHz or 16kHz, default 8kHz].
+    swap:        Swap byte orders (whatever that does is not clear to me) [default: False].
+    wb:          Use wideband algorithm [default: False].
+    bin:         Location of pesq executable [default: ./bin/pesq].
+
+    Return 
+    ------
+    pesq_vals:   A 2xN ndarray containing Raw MOS and MOS LQO in rows 0 and 1,
+                 respectively, and has one column per degraded file name in deg_files.
     '''
+
+    if isinstance(deg_files, str):
+        deg_files = [deg_files]
 
     if platform.system() is 'Windows':
         bin = bin + '.exe'
 
-    if not os.path.isfile(ref) or not os.path.isfile(deg):
+    if not os.path.isfile(ref_file):
         raise ValueError('Some file did not exist')
+    for f in deg_files:
+        if not os.path.isfile(f):
+            raise ValueError('Some file did not exist')
 
     if Fs not in (8000, 16000):
         raise ValueError('sample rate must be 8000 or 16000')
@@ -120,21 +127,32 @@ def pesq(ref, deg, Fs=8000, swap=False, wb=False, bin='./bin/pesq'):
     if wb is True:
         args.append('+wb')
 
-    args.append(ref)
-    args.append(deg)
+    args.append(ref_file)
 
+    # array to receive all output values
+    pesq_vals = np.zeros((2,len(deg_files)))
+
+    # launch pesq for each degraded file in a different process
     import subprocess
-    pipe = subprocess.Popen(args, stdout=subprocess.PIPE)
-    out, _ = pipe.communicate()
-    last_line = out.split('\n')[-2]
+    pipes = [ subprocess.Popen(args+[deg], stdout=subprocess.PIPE) for deg in deg_files ]
+    states = np.ones(len(pipes), dtype=np.bool)
 
+    # Recover output as the processes finish
+    while states.any():
 
-    if wb is True:
-        if not last_line.startswith('P.862.2 Prediction'):
-            raise ValueError(last_line)
-        return 0, float(last_line.split()[-1])
-    else:
-        if not last_line.startswith('P.862 Prediction'):
-            raise ValueError(last_line)
-        return tuple(map(float, last_line.split()[-2:]))
+        for i,p in enumerate(pipes):
+            if states[i] == True and p.poll() is not None:
+                states[i] = False
+                out = p.stdout.readlines()
+                last_line = out[-1][:-2]
 
+                if wb is True:
+                    if not last_line.startswith('P.862.2 Prediction'):
+                        raise ValueError(last_line)
+                    pesq_vals[:,i] =  np.array([0, float(last_line.split()[-1])])
+                else:
+                    if not last_line.startswith('P.862 Prediction'):
+                        raise ValueError(last_line)
+                    pesq_vals[:,i] = np.array(map(float, last_line.split()[-2:]))
+
+    return pesq_vals

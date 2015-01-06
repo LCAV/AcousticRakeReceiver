@@ -79,14 +79,11 @@ def perceptual_quality_evaluation(n_sources, Loops):
     bf_fnames = ['1','2','3']
     NBF = len(beamformer_names)
 
-    pesq_input_rawmos = np.zeros(Loops)
-    pesq_input_moslqo = np.zeros(Loops)
-
-    pesq_rawmos = np.zeros((NBF, Loops))
-    pesq_moslqo = np.zeros((NBF, Loops))
-
-    isinr = np.zeros(Loops)
-    osinr = np.zeros((NBF, Loops))
+    # receptacle arrays
+    pesq_input = np.zeros((2,nsources,Loops))
+    pesq = np.zeros((2,nsources,NBF,Loops))
+    isinr = np.zeros((nsources,Loops))
+    osinr = np.zeros((nsources,NBF,Loops))
 
     # since we run multiple thread, we need to uniquely identify filenames
     import os
@@ -95,6 +92,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
     file_ref  = 'output_samples/fqref' + pid + '.wav'
     file_bf_base = 'output_samples/fq'
     file_bf_suffix = '-' + pid + '.wav'
+    files_bf = [file_bf_base + str(i+1) + file_bf_suffix for i in xrange(NBF)]
     file_raw  = 'output_samples/fqraw' + pid + '.wav'
 
     # Read the two speech samples used
@@ -117,147 +115,133 @@ def perceptual_quality_evaluation(n_sources, Loops):
     bad_signal *= good_sigma2/np.mean(bad_signal**2)
         
     l = 0
-    for l in xrange(Loops):
+    for s in xrange(nsources):
+        for l in xrange(Loops):
 
-        # pick good source position at random
-        good_source = np.random.random(2)*bbox_size + bbox_origin
-        good_distance = np.linalg.norm(mics.center[:,0] - np.array(good_source))
-        
-        # pick bad source position at random
-        bad_source = np.random.random(2)*bbox_size + bbox_origin
-        bad_distance = np.linalg.norm(mics.center[:,0] - np.array(bad_source))
+            # pick good source position at random
+            good_source = np.random.random(2)*bbox_size + bbox_origin
+            good_distance = np.linalg.norm(mics.center[:,0] - np.array(good_source))
+            
+            # pick bad source position at random
+            bad_source = np.random.random(2)*bbox_size + bbox_origin
+            bad_distance = np.linalg.norm(mics.center[:,0] - np.array(bad_source))
 
-        if good_len > bad_len:
-            good_delay = 0
-            bad_delay = (good_len - bad_len)/2.
-        else:
-            bad_delay = 0
-            good_delay = (bad_len - good_len)/2.
+            if good_len > bad_len:
+                good_delay = 0
+                bad_delay = (good_len - bad_len)/2.
+            else:
+                bad_delay = 0
+                good_delay = (bad_len - good_len)/2.
 
-        # compute the noise variance at center of array wrt good signal and SNR
-        sigma2_n = good_sigma2/(4*np.pi*good_distance)**2/10**(SNR_at_mic/10)
+            # compute the noise variance at center of array wrt good signal and SNR
+            sigma2_n = good_sigma2/(4*np.pi*good_distance)**2/10**(SNR_at_mic/10)
 
-        # create the reference room for freespace, noisless, no interference simulation
-        ref_room = rg.Room.shoeBox2D(
-            [0,0],
-            room_dim,
-            Fs,
-            t0 = t0,
-            max_order=0,
-            absorption=absorption,
-            sigma2_awgn=0.)
-        ref_room.addSource(good_source, signal=good_signal, delay=good_delay)
-        ref_room.addMicrophoneArray(ref_mic)
-        ref_room.compute_RIR()
-        ref_room.simulate()
-        reference = ref_mic.signals[0]
-        reference_n = u.normalize(reference)
+            # create the reference room for freespace, noisless, no interference simulation
+            ref_room = rg.Room.shoeBox2D(
+                [0,0],
+                room_dim,
+                Fs,
+                t0 = t0,
+                max_order=0,
+                absorption=absorption,
+                sigma2_awgn=0.)
+            ref_room.addSource(good_source, signal=good_signal, delay=good_delay)
+            ref_room.addMicrophoneArray(ref_mic)
+            ref_room.compute_RIR()
+            ref_room.simulate()
+            reference = ref_mic.signals[0]
+            reference_n = u.normalize(reference)
 
-        # save the reference desired signal
-        wavfile.write(file_ref, Fs, to_16b(reference_n))
+            # save the reference desired signal
+            wavfile.write(file_ref, Fs, to_16b(reference_n))
 
-        # create the 'real' room with sources and mics
-        room1 = rg.Room.shoeBox2D(
-            [0,0],
-            room_dim,
-            Fs,
-            t0 = t0,
-            max_order=max_order_sim,
-            absorption=absorption,
-            sigma2_awgn=sigma2_n)
+            # create the 'real' room with sources and mics
+            room1 = rg.Room.shoeBox2D(
+                [0,0],
+                room_dim,
+                Fs,
+                t0 = t0,
+                max_order=max_order_sim,
+                absorption=absorption,
+                sigma2_awgn=sigma2_n)
 
-        # add sources to room
-        room1.addSource(good_source, signal=good_signal, delay=good_delay)
-        room1.addSource(bad_source, signal=bad_signal, delay=bad_delay)
+            # add sources to room
+            room1.addSource(good_source, signal=good_signal, delay=good_delay)
+            room1.addSource(bad_source, signal=bad_signal, delay=bad_delay)
 
-        # Record first the degraded signal at reference mic (center of array)
-        room1.addMicrophoneArray(ref_mic)
-        room1.compute_RIR()
-        room1.simulate()
-        raw_n = u.normalize(u.highpass(ref_mic.signals[0], Fs))
+            # Record first the degraded signal at reference mic (center of array)
+            room1.addMicrophoneArray(ref_mic)
+            room1.compute_RIR()
+            room1.simulate()
+            raw_n = u.normalize(u.highpass(ref_mic.signals[0], Fs))
 
-        # save degraded reference signal
-        wavfile.write(file_raw, Fs, to_16b(raw_n))
+            # save degraded reference signal
+            wavfile.write(file_raw, Fs, to_16b(raw_n))
 
-        # Now record input of microphone array
-        room1.addMicrophoneArray(mics)
-        room1.compute_RIR()
-        room1.simulate()
+            # Now record input of microphone array
+            room1.addMicrophoneArray(mics)
+            room1.compute_RIR()
+            room1.simulate()
+
+            ''' 
+            BEAMFORMING PART
+            '''
+            # Extract image sources locations and create noise covariance matrix
+            good_sources = room1.sources[0].getImages(n_nearest=s+1, 
+                                                        ref_point=mics.center)
+            bad_sources = room1.sources[1].getImages(n_nearest=s+1,
+                                                        ref_point=mics.center)
+            Rn = sigma2_n*np.eye(mics.M)
+
+            # run for all beamformers considered
+            for i, bfr in enumerate(beamformer_names):
+
+                # compute the beamforming weights
+                bf_weights_fun[i](good_sources, bad_sources,
+                                        R_n = sigma2_n*np.eye(mics.M), 
+                                        attn=True, ff=False)
+
+                output = mics.process()
+                delay = phat.delay_estimation(reference_n, output, 4096)
+
+                # high-pass and normalize
+                output = u.normalize(u.highpass(output, Fs))
+
+                # time-align with reference segment for error metric computation
+                sig = np.zeros(reference_n.shape[0])
+                if (delay >= 0):
+                    length = np.minimum(output.shape[0], reference_n.shape[0]-delay)
+                    sig[delay:length+delay] = output[:length]
+                else:
+                    length = np.minimum(output.shape[0]+delay, reference_n.shape[0])
+                    sig = np.zeros(reference_n.shape)
+                    sig[:length] = output[-delay:-delay+length]
+
+                # save files for PESQ evaluation
+                fname = file_bf_base + bf_fnames[i] + file_bf_suffix
+                wavfile.write(fname, Fs, to_16b(sig))
+
+                # compute output SINR
+                osinr[s,i,l] = metrics.snr(reference_n, sig)
+
+                # end of beamformers loop
 
         # Compute PESQ and SINR of raw degraded reference signal
         isinr[l] = metrics.snr(reference_n, raw_n[:reference_n.shape[0]])
-        try:
-            pesq_input_rawmos[l], pesq_input_moslqo[l] = metrics.pesq(file_ref, file_raw, Fs=Fs)
-        except ValueError as ve:
-            pesq_input_rawmos[l], pesq_input_moslqo[l] = np.nan, np.nan
-            print "Oups, PESQ ValueError (assigning NaN):",ve
-        except IndexError as ie:
-            pesq_input_rawmos[l], pesq_input_moslqo[l] = np.nan, np.nan
-            print "Oups, PESQ IndexError (assigning NaN):",ie
 
-        ''' 
-        BEAMFORMING PART
-        '''
-        # Extract image sources locations and create noise covariance matrix
-        good_sources = room1.sources[0].getImages(n_nearest=nsources, 
-                                                    ref_point=mics.center)
-        bad_sources = room1.sources[1].getImages(n_nearest=nsources,
-                                                    ref_point=mics.center)
-        Rn = sigma2_n*np.eye(mics.M)
-
-        # run for all beamformers considered
-        for i, bfr in enumerate(beamformer_names):
-
-            # compute the beamforming weights
-            bf_weights_fun[i](good_sources, bad_sources,
-                                    R_n = sigma2_n*np.eye(mics.M), 
-                                    attn=True, ff=False)
-
-            output = mics.process()
-            delay = phat.delay_estimation(reference_n, output, 4096)
-
-            # high-pass and normalize
-            output = u.normalize(u.highpass(output, Fs))
-
-            # time-align with reference segment for error metric computation
-            sig = np.zeros(reference_n.shape[0])
-            if (delay >= 0):
-                length = np.minimum(output.shape[0], reference_n.shape[0]-delay)
-                sig[delay:length+delay] = output[:length]
-            else:
-                length = np.minimum(output.shape[0]+delay, reference_n.shape[0])
-                sig = np.zeros(reference_n.shape)
-                sig[:length] = output[-delay:-delay+length]
-
-            # save files for PESQ evaluation
-            fname = file_bf_base + bf_fnames[i] + file_bf_suffix
-            wavfile.write(fname, Fs, to_16b(sig))
-
-            # compute PESQ
-            try:
-                pesq_rawmos[i,l], pesq_moslqo[i,l] = metrics.pesq(file_ref, fname, Fs=Fs)
-            except ValueError as ve:
-                pesq_rawmos[i,l], pesq_moslqo[i,l] = np.nan, np.nan
-                print "Oups, PESQ ValueError (assigning NaN):",ve
-            except IndexError as ie:
-                pesq_rawmos[i,l], pesq_moslqo[i,l] = np.nan, np.nan
-                print "Oups, PESQ IndexError (assigning NaN):",ie
-
-            # compute output SINR
-            osinr[i,l] = metrics.snr(reference_n, sig)
-
-            # end of beamformers loop
+        # Compute PESQ for all beamformers in parallel
+        pesq_vals = metrics.pesq(file_ref, file_raw + files_bf, Fs=Fs)
+        pesq_input[:,l] = pesq_vals[:,0]
+        pesq[:,s,:,l] = pesq_vals[:,1:]
 
         # end of simulation loop
 
 
     # save the simulation results to file
     filename = 'sim_data/quality_NSOURCES' + str(n_sources)  \
-                + '_LOOPS' + str(Loops) + '.npz'
+                + '_LOOPS' + str(Loops) + 'PID' + pid + '.npz'
     np.savez(filename, isinr=isinr, osinr=osinr, 
-            pesq_input_rawmos=pesq_input_rawmos, 
-            pesq_input_moslqo=pesq_input_moslqo,
-            pesq_rawmos=pesq_rawmos, pesq_moslqo=pesq_moslqo,
+            pesq=pesq, pesq_input=pesq_input,
             bf_names=beamformer_names)
 
     print 'Median input SINR :',u.dB(np.median(isinr))
