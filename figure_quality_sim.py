@@ -230,7 +230,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
         isinr[l] = metrics.snr(reference_n, raw_n[:reference_n.shape[0]])
 
         # Compute PESQ for all beamformers in parallel
-        pesq_vals = metrics.pesq(file_ref, file_raw + files_bf, Fs=Fs)
+        pesq_vals = metrics.pesq(file_ref, [file_raw] + files_bf, Fs=Fs)
         pesq_input[:,l] = pesq_vals[:,0]
         pesq[:,s,:,l] = pesq_vals[:,1:]
 
