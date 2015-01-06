@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import pinv, eig, inv
 from time import sleep
 
 import constants
@@ -36,13 +37,15 @@ def mdot(*args):
 
 
 def distance(X, Y):
+    '''
+    X and Y are DxN ndarray containing N D-dimensional vectors
+    distance(X,Y) computes the distance matrix E where E[i,j] = sqrt(sum((X[:,i]-Y[:,j])**2))
+    '''
     # Assume X, Y are arrays, *not* matrices
     X = np.array(X)
     Y = np.array(Y)
 
-    XX, YY = [np.sum(A ** 2, axis=0, keepdims=True) for A in (X, Y)]
-
-    return np.sqrt(np.abs((XX.T + YY) - 2 * np.dot(X.T, Y)))
+    return np.sqrt((X[0,:,np.newaxis]-Y[0,:])**2 + (X[1,:,np.newaxis]-Y[1,:])**2)
 
 
 def unit_vec2D(phi):
@@ -74,13 +77,13 @@ def fir_approximation_ls(weights, T, n1, n2):
     # Create the DTFT transform matrix corresponding to a discrete set of
     # frequencies and the FIR filter indices
     F = np.exp(-1j * omega_discrete * n)
-    print np.linalg.pinv(F)
+    print pinv(F)
 
     w_plus = np.array(weights.values())[:, :, 0]
     w = np.vstack([w_plus,
                    w_plus.conj()])
 
-    return np.linalg.pinv(F).dot(w)
+    return pinv(F).dot(w)
 
 
 #=========================================================================
@@ -237,13 +240,27 @@ class Beamformer(MicrophoneArray):
         Return: 
             A 2x1 ndarray containing the steering vector
         """
-        phi = np.angle(         (source[0] - self.center[0, 0]) 
-                         + 1j * (source[1] - self.center[1, 0]))
-        if (not ff):
-            dist = np.sqrt(np.sum((source - self.center) ** 2, axis=0))
+        X = np.array(source)
+        if X.ndim == 1:
+            X = source[:,np.newaxis]
+
+        # normalize for far-field if requested
+        if (ff):
+            X -= self.center
+            Xn = np.sqrt(np.sum(X**2, axis=0))
+            X *= constants.ffdist/Xn
+            X += self.center
+
+        D = distance(self.R, X)
+        omega = 2 * np.pi * frequency
+
+        if attn:
+            # TO DO 1: This will mean slightly different absolute value for
+            # every entry, even within the same steering vector. Perhaps a
+            # better paradigm is far-field with phase carrier.
+            return 1. / (4 * np.pi) / D * np.exp(-1j * omega * D / constants.c)
         else:
-            dist = constants.ffdist
-        return self.steering_vector_2D(frequency, phi, dist, attn=attn)
+            return np.exp(-1j * omega * D / constants.c)
 
 
     def response(self, phi_list, frequency):
@@ -392,8 +409,8 @@ class Beamformer(MicrophoneArray):
             R_nq     = R_n + sumcols(A_bad).dot(H(sumcols(A_bad)))
 
             A_s      = self.steering_vector_2D_from_point(f, source, attn=attn, ff=ff)
-            R_nq_inv = np.linalg.pinv(R_nq)
-            D        = np.linalg.pinv(mdot(H(A_s), R_nq_inv, A_s))
+            R_nq_inv = pinv(R_nq)
+            D        = pinv(mdot(H(A_s), R_nq_inv, A_s))
 
             self.weights[:,i] = sumcols( mdot( R_nq_inv, A_s, D ) )[:,0]
 
@@ -426,7 +443,7 @@ class Beamformer(MicrophoneArray):
             a_bad = sumcols(A_bad)
 
             # TO DO: Fix this (check for numerical rank, use the low rank approximation)
-            K_inv = np.linalg.pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
+            K_inv = pinv(a_bad.dot(H(a_bad)) + R_n + rcond * np.eye(A_bad.shape[0]))
             self.weights[:,i] = (K_inv.dot(a_good) / mdot(H(a_good), K_inv, a_good))[:,0]
 
 
@@ -452,9 +469,9 @@ class Beamformer(MicrophoneArray):
             R_nq = R_n + sumcols(A_bad).dot(H(sumcols(A_bad)))
 
             C = np.linalg.cholesky(R_nq)
-            l, v = np.linalg.eig( mdot( np.linalg.inv(C), A_good, H(A_good), H(np.linalg.inv(C)) ) )
+            l, v = eig( mdot( inv(C), A_good, H(A_good), H(inv(C)) ) )
 
-            self.weights[:,i] = np.linalg.inv(H(C)).dot(v[:,0])
+            self.weights[:,i] = inv(H(C)).dot(v[:,0])
 
 
     def SNR(self, source, interferer, f, R_n=None, dB=False):
