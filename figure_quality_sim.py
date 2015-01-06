@@ -80,10 +80,10 @@ def perceptual_quality_evaluation(n_sources, Loops):
     NBF = len(beamformer_names)
 
     # receptacle arrays
-    pesq_input = np.zeros((2,nsources,Loops))
-    pesq = np.zeros((2,NBF,nsources,Loops))
-    isinr = np.zeros((nsources,Loops))
-    osinr = np.zeros((NBF,nsources,Loops))
+    pesq_input = np.zeros((2,n_sources,Loops))
+    pesq = np.zeros((2,NBF,n_sources,Loops))
+    isinr = np.zeros((n_sources,Loops))
+    osinr = np.zeros((NBF,n_sources,Loops))
 
     # since we run multiple thread, we need to uniquely identify filenames
     import os
@@ -114,7 +114,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
     # normalize interference signal to have equal power with desired signal
     bad_signal *= good_sigma2/np.mean(bad_signal**2)
         
-    for s in xrange(nsources):
+    for s in xrange(n_sources):
         for l in xrange(Loops):
 
             # pick good source position at random
