@@ -217,8 +217,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
                     sig[:length] = output[-delay:-delay+length]
 
                 # save files for PESQ evaluation
-                fname = file_bf_base + bf_fnames[i] + file_bf_suffix
-                wavfile.write(fname, Fs, to_16b(sig))
+                wavfile.write(files_bf[i], Fs, to_16b(sig))
 
                 # compute output SINR
                 osinr[i,s,l] = metrics.snr(reference_n, sig)
@@ -226,7 +225,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
                 # end of beamformers loop
 
             # Compute PESQ and SINR of raw degraded reference signal
-            isinr[l] = metrics.snr(reference_n, raw_n[:reference_n.shape[0]])
+            isinr[s,l] = metrics.snr(reference_n, raw_n[:reference_n.shape[0]])
 
             # Compute PESQ for all beamformers in parallel
             pesq_vals = metrics.pesq(file_ref, [file_raw] + files_bf, Fs=Fs)
