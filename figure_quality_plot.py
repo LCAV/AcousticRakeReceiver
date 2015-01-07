@@ -15,28 +15,26 @@ beamformer_names = ['Rake-DS',
 NBF = len(beamformer_names)
 
 loops = 0
-name_pattern = 'quality_NSOURCES' + str(max_sources) + '_LOOPS*_PID*.npz'
+name_pattern = 'quality_2015*.npz'
 files = [file for file in os.listdir(sim_data_dir) if fnmatch.fnmatch(file, name_pattern)]
 
-ipesq = np.zeros((2,max_sources,0))
-opesq = np.zeros((2,NBF,max_sources,0))
-isinr = np.zeros((max_sources,0))
-osinr = np.zeros((NBF,max_sources,0))
+ipesq = np.zeros((0,2))
+opesq = np.zeros((0,2,NBF,max_sources))
+isinr = np.zeros((0))
+osinr = np.zeros((0,NBF,max_sources))
 
 for fname in files:
+    print 'Loading from',fname
 
     a = np.load(sim_data_dir + fname)
 
-    #print osinr.shape
-    #print a['osinr'].shape
+    isinr = np.concatenate((isinr,a['isinr']), axis=0)
+    osinr = np.concatenate((osinr,a['osinr_bf']), axis=0)
+    ipesq = np.concatenate((ipesq,a['pesq_input']), axis=0)
+    opesq = np.concatenate((opesq,a['pesq_bf']), axis=0)
 
-    isinr = np.concatenate((isinr,a['isinr']), axis=-1)
-    osinr = np.concatenate((osinr,a['osinr']), axis=-1)
-    ipesq = np.concatenate((ipesq,a['pesq_input']), axis=-1)
-    opesq = np.concatenate((opesq,a['pesq']), axis=-1)
-
-print 'Median input Raw MOS',np.median(ipesq[0,:,:])
-print 'Median input MOS LQO',np.median(ipesq[1,:,:])
+print 'Median input Raw MOS',np.median(ipesq[:,0])
+print 'Median input MOS LQO',np.median(ipesq[:,1])
 
 plt.figure(figsize=(18,9))
 
@@ -51,15 +49,15 @@ def nice_plot(x):
 
     for i, bf in enumerate(beamformer_names):
         p, = plt.plot(range(0, max_sources), 
-            np.median(x[i,:,:], axis=1),
+                np.median(x[:,i,:], axis=0),
             next(linecycler),
             linewidth=1,
             markersize=4,
             markeredgewidth=.5)
 
         plt.fill_between(range(0, max_sources),
-            np.percentile(x[i,:,:], 25, axis=1),
-            np.percentile(x[i,:,:], 75, axis=1),
+            np.percentile(x[:,i,:], 25, axis=0),
+            np.percentile(x[:,i,:], 75, axis=0),
             color='grey',
             linewidth=0.3,
             edgecolor='k',
@@ -67,13 +65,13 @@ def nice_plot(x):
 
 
 plt.subplot(2,3,1)
-nice_plot(opesq[0,:,:,:])
+nice_plot(opesq[:,0,:,:])
 plt.xlabel('Number of sources')
 plt.ylabel('Raw MOS')
 plt.legend(beamformer_names, loc=2)
 
 plt.subplot(2,3,2)
-nice_plot(opesq[1,:,:,:])
+nice_plot(opesq[:,1,:,:])
 plt.xlabel('Number of sources')
 plt.ylabel('MOS LQO')
 plt.legend(beamformer_names, loc=2)
@@ -85,19 +83,19 @@ plt.ylabel('output SINR')
 plt.legend(beamformer_names, loc=2)
 
 plt.subplot(2,3,4)
-nice_plot(opesq[0,:,:,:] - ipesq[0,:,:])
+nice_plot(opesq[:,0,:,:] - ipesq[:,0,np.newaxis,np.newaxis])
 plt.xlabel('Number of sources')
 plt.ylabel('Improvement Raw MOS')
 plt.legend(beamformer_names, loc=2)
 
 plt.subplot(2,3,5)
-nice_plot(opesq[1,:,:,:] - ipesq[1,:,:])
+nice_plot(opesq[:,1,:,:] - ipesq[:,1,np.newaxis,np.newaxis])
 plt.xlabel('Number of sources')
 plt.ylabel('Improvement MOS LQO')
 plt.legend(beamformer_names, loc=2)
 
 plt.subplot(2,3,6)
-nice_plot(osinr[:,:,:] - isinr[np.newaxis,:,:])
+nice_plot(osinr[:,:,:] - isinr[:,np.newaxis,np.newaxis])
 plt.xlabel('Number of sources')
 plt.ylabel('Improvement SINR')
 plt.legend(beamformer_names, loc=2)
