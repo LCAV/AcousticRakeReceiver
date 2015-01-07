@@ -185,58 +185,55 @@ all_vals = np.concatenate((u.dB(F1+eps),
                            u.dB(F0+eps))).flatten()
 vmin, vmax = np.percentile(all_vals, [p_min, p_max])
 
-cmap = 'afmhot'
+#cmap = 'afmhot'
 interpolation='sinc'
+cmap = 'Purples'
+#cmap = 'YlGnBu'
+#cmap = 'PuRd'
+cmap = 'binary'
+#interpolation='none'
 
-fig, ax = plt.subplots(figsize=figsize, nrows=1, ncols=4)
+# We want to blow up some parts of the spectromgram to highlight differences
+# Define some boxes here
+from matplotlib.patches import Circle, Wedge, Polygon
+from matplotlib.collections import PatchCollection
+import matplotlib.pyplot as plt
+top = F0.shape[1]/2+1
+end = F0.shape[0]
+x1 = np.floor(end*np.array([0.045, 0.13]))
+y1 = np.floor(top*np.array([0.74, 0.908]))
+box1 = [[x1[0],y1[0]],[x1[0],y1[1]],[x1[1],y1[1]],[x1[1],y1[0]],[x1[0],y1[0]]]
 
-ax = plt.subplot(1,4,1)
-spectroplot(F0.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax,
-        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
+x2 = np.floor(end*np.array([0.50, 0.66]))
+y2 = np.floor(top*np.array([0.84, 0.96]))
+box2 = [[x2[0],y2[0]],[x2[0],y2[1]],[x2[1],y2[1]],[x2[1],y2[0]],[x2[0],y2[0]]]
 
-ax = plt.subplot(1,4,2)
-spectroplot(F1.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax,
-        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
+x3 = np.floor(end*np.array([0.48, 0.64]))
+y3 = np.floor(top*np.array([0.44, 0.56]))
+box3 = [[x3[0],y3[0]],[x3[0],y3[1]],[x3[1],y3[1]],[x3[1],y3[0]],[x3[0],y3[0]]]
 
-ax = plt.subplot(1,4,3)
-spectroplot(F2.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax, 
-        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
+boxes = [Polygon(box1, True, fill=False, facecolor='none'),
+         Polygon(box2, True, fill=False, facecolor='none'),
+         Polygon(box3, True, fill=False, facecolor='none'),]
+ec=np.array([0,0,0])
+lw = 0.5
 
-ax = plt.subplot(1,4,4)
-spectroplot(F3.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax, 
-        cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
-
-plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.02)
-
-fig.savefig('figures/spectrograms.pdf', dpi=600)
-
-
-# Second figure with difference spectrograms
-
-fig, ax = plt.subplots(figsize=figsize2, nrows=1, ncols=4)
+# Draw first the spectrograms with boxes on top
+fig, ax = plt.subplots(figsize=figsize2, nrows=2, ncols=4)
 
 ax = plt.subplot(2,4,1)
 spectroplot(F0.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax,
         cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.add_collection(PatchCollection(boxes, facecolor='none', edgecolor=ec, linewidth=lw))
 ax.set_ylabel('')
 ax.set_xlabel('')
+aspect = ax.get_aspect()
 ax.axis('off')
 
 ax = plt.subplot(2,4,2)
 spectroplot(F1.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax,
         cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.add_collection(PatchCollection(boxes, facecolor='none', edgecolor=ec, linewidth=lw))
 ax.set_ylabel('')
 ax.set_xlabel('')
 ax.axis('off')
@@ -244,6 +241,7 @@ ax.axis('off')
 ax = plt.subplot(2,4,3)
 spectroplot(F2.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax, 
         cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.add_collection(PatchCollection(boxes, facecolor='none', edgecolor=ec, linewidth=lw))
 ax.set_ylabel('')
 ax.set_xlabel('')
 ax.axis('off')
@@ -251,49 +249,74 @@ ax.axis('off')
 ax = plt.subplot(2,4,4)
 spectroplot(F3.T, fft_size+fft_zp, fft_hop, Fs, vmin=vmin, vmax=vmax, 
         cmap=plt.get_cmap(cmap), interpolation=interpolation, colorbar=False)
+ax.add_collection(PatchCollection(boxes, facecolor='none', edgecolor=ec, linewidth=lw))
 ax.set_ylabel('')
 ax.set_xlabel('')
 ax.axis('off')
 
-# now the difference spectrograms
-N2 = (fft_size+fft_zp)/2 + 1
-E1 = np.abs(u.dB(F0.T) - u.dB(F1.T))[:N2,:]
-E2 = np.abs(u.dB(F0.T) - u.dB(F2.T))[:N2,:]
-E3 = np.abs(u.dB(F0.T) - u.dB(F3.T))[:N2,:]
-p_min = 0
-p_max = 100
-all_vals = np.concatenate((E1, E2, E3)).flatten()
-vmin, vmax = np.percentile(all_vals, [p_min, p_max])
+# conserve aspect ratio from top plot
+aspect = float(top)/end
+w = figsize2[0]/4
+h = figsize2[1]/2
+aspect = (h/top)/(w/end)
 
-ax = plt.subplot(2,4,6)
-plt.imshow(E1,
-        aspect='auto', 
-        origin='lower',
-        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
+z1 = 0.5*end/(x1[1]-x1[0]+1)
+z2 = 0.5*end/(x2[1]-x2[0]+1)
+z3 = 0.5*end/(x3[1]-x3[0]+1)
 
-ax = plt.subplot(2,4,7)
-plt.imshow(E2,
-        aspect='auto', 
-        origin='lower',
-        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
+# 3x zoom on blown up boxes
+zoom = 3.
 
-ax = plt.subplot(2,4,8)
-plt.imshow(E3,
-        aspect='auto', 
-        origin='lower',
-        vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
-ax.set_ylabel('')
-ax.set_xlabel('')
-ax.axis('off')
+# define a function to plot the blown-up part
+# with proper aspect ratio and zoom 
+def blow_up(F, x, y, aspect, ax, zoom=None):
+    w = x[1]+1-x[0]
+    h = y[1]+1-y[0]
+    extent = [0,w,0,h]
+    plt.imshow(u.dB(F[x[0]:x[1]+1,y[0]:y[1]+1].T),
+            aspect=aspect,
+            origin='lower', extent=extent,
+            vmin=vmin, vmax=vmax, cmap=cmap, interpolation=interpolation)
+    if zoom is not None:
+        wo = w*(1-zoom)/zoom
+        ho = h*(1-zoom)/zoom
+        ax.set_xlim(-wo/2,w+wo/2)
+        ax.set_ylim(-ho/2,h+ho/2)
+    ax.set_ylabel('')
+    ax.set_xlabel('')
+    ax.axis('off')
+
+# plot the blown up boxes
+ax = plt.subplot(2,8,9)
+blow_up(F0,x1,y1,aspect,ax,zoom=zoom/z1)
+ax = plt.subplot(4,8,18)
+blow_up(F0,x2,y2,aspect,ax,zoom=zoom/z2)
+ax = plt.subplot(4,8,26)
+blow_up(F0,x3,y3,aspect,ax,zoom=zoom/z3)
+
+ax = plt.subplot(2,8,11)
+blow_up(F1,x1,y1,aspect,ax,zoom=zoom/z1)
+ax = plt.subplot(4,8,20)
+blow_up(F1,x2,y2,aspect,ax,zoom=zoom/z2)
+ax = plt.subplot(4,8,28)
+blow_up(F1,x3,y3,aspect,ax,zoom=zoom/z3)
+
+ax = plt.subplot(2,8,13)
+blow_up(F2,x1,y1,aspect,ax,zoom=zoom/z1)
+ax = plt.subplot(4,8,22)
+blow_up(F2,x2,y2,aspect,ax,zoom=zoom/z2)
+ax = plt.subplot(4,8,30)
+blow_up(F2,x3,y3,aspect,ax,zoom=zoom/z3)
+
+ax = plt.subplot(2,8,15)
+blow_up(F3,x1,y1,aspect,ax,zoom=zoom/z1)
+ax = plt.subplot(4,8,24)
+blow_up(F3,x2,y2,aspect,ax,zoom=zoom/z2)
+ax = plt.subplot(4,8,32)
+blow_up(F3,x3,y3,aspect,ax,zoom=zoom/z3)
 
 plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.02, hspace=0.02)
 
-fig.savefig('figures/spectrograms2.pdf', dpi=600)
+fig.savefig('figures/spectrograms.pdf', dpi=600)
 
 plt.show()

@@ -242,7 +242,7 @@ def perceptual_quality_evaluation(n_sources, Loops):
         for i, bfr in enumerate(beamformer_names):
             print bfr
             print '  median PESQ [MOS Raw/LQO]: ',np.median(pesq[:,i,s,:], axis=1)
-            print '  median oSINR: ',u.dB(np.median(osinr[i,:]))
+            print '  median oSINR: ',u.dB(np.median(osinr[i,s,:]))
 
         # end of number of sources loop
 
