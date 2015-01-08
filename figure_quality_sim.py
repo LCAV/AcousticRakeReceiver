@@ -255,9 +255,6 @@ if __name__ == '__main__':
 
     Loops = int(sys.argv[1])
 
-    # number of image sources to consider
-    n_src = np.arange(l_src, u_src)
-
     # we restrict sources to be in a square 1m away from every wall and from the array
     bbox_size = np.array([[2.,2.5]])
     bbox_origin = np.array([[1.,2.5]])
