@@ -24,6 +24,22 @@ def perceptual_quality_evaluation(good_source, bad_source):
     Perceputal Quality evaluation simulation
     Inner Loop
     '''
+    import numpy
+    from scipy.io import wavfile
+    from scipy.signal import resample
+
+    import Room
+    import beamforming
+
+    from constants import eps
+    from stft import stft, spectroplot
+    import windows
+    import utilities
+    import phat
+    import metrics
+    
+    from figure_quality_sim import to_16b
+
     # number of number of sources
     n_sources = numpy.arange(1,12)
     S = n_sources.shape[0]
@@ -242,10 +258,11 @@ if __name__ == '__main__':
     from IPython import parallel
     c = parallel.Client()
     print c.ids
-    view = c[:]
     c.blocks = True
-    print view
+    #view = c[:]
+    view = c.load_balanced_view()
 
+    '''
     with view.sync_imports():
         import numpy as np
         from scipy.io import wavfile
@@ -262,6 +279,7 @@ if __name__ == '__main__':
         import metrics as metrics
         
         from figure_quality_sim import to_16b
+    '''
 
 
     l_src = int(sys.argv[1])
@@ -269,15 +287,15 @@ if __name__ == '__main__':
     Loops = int(sys.argv[3])
 
     # number of image sources to consider
-    n_src = np.arange(l_src, u_src)
+    n_src = numpy.arange(l_src, u_src)
 
     # we restrict sources to be in a square 1m away from every wall and from the array
-    bbox_size = np.array([[2.,2.5]])
-    bbox_origin = np.array([[1.,2.5]])
+    bbox_size = numpy.array([[2.,2.5]])
+    bbox_origin = numpy.array([[1.,2.5]])
 
     # draw all target and interferer at random
-    good_source = np.random.random((Loops,2))*bbox_size + bbox_origin
-    bad_source = np.random.random((Loops,2))*bbox_size + bbox_origin
+    good_source = numpy.random.random((Loops,2))*bbox_size + bbox_origin
+    bad_source = numpy.random.random((Loops,2))*bbox_size + bbox_origin
 
     start = time.time()
     out = view.map_sync(perceptual_quality_evaluation, good_source, bad_source)
@@ -287,16 +305,16 @@ if __name__ == '__main__':
     print('Time ellapsed: ' + str(ellapsed))
 
     # recover all the data
-    pesq_input = np.array([o[0] for o in out])
-    pesq_trinicon = np.array([o[1] for o in out])
-    pesq_bf = np.array([o[2] for o in out])
-    isinr = np.array([o[3] for o in out])
-    osinr_trinicon = np.array([o[4] for o in out])
-    osinr_bf = np.array([o[5] for o in out])
+    pesq_input = numpy.array([o[0] for o in out])
+    pesq_trinicon = numpy.array([o[1] for o in out])
+    pesq_bf = numpy.array([o[2] for o in out])
+    isinr = numpy.array([o[3] for o in out])
+    osinr_trinicon = numpy.array([o[4] for o in out])
+    osinr_bf = numpy.array([o[5] for o in out])
 
     # save the simulation results to file
     filename = 'sim_data/quality_' + time.strftime('%Y%m%d-%H%M%Sz') + '.npz'
-    np.savez_compressed(filename, good_source=good_source, bad_source=bad_source,
+    numpy.savez_compressed(filename, good_source=good_source, bad_source=bad_source,
             isinr=isinr, osinr_bf=osinr_bf, osinr_trinicon=osinr_trinicon,
             pesq_bf=pesq_bf, pesq_input=pesq_input, pesq_trinicon=pesq_trinicon)
 
