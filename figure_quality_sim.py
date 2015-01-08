@@ -72,10 +72,10 @@ def perceptual_quality_evaluation(good_source, bad_source):
 
     # receptacle arrays
     pesq_input = np.zeros(2)
-    pesq_trinicon = np.zeros(2)
+    pesq_trinicon = np.zeros((2,2))
     pesq_bf = np.zeros((2,NBF,S))
     isinr = 0
-    osinr_trinicon = 0
+    osinr_trinicon = np.zeros(2)
     osinr_bf = np.zeros((NBF,S))
 
     # since we run multiple thread, we need to uniquely identify filenames
@@ -189,14 +189,10 @@ def perceptual_quality_evaluation(good_source, bad_source):
     wavfile.write(files_tri[1], Fs, to_16b(output_tri2))
 
     # evaluate
-    # we consider the signal with highest PESQ Raw MOS as target signal
-    pesq_val = pesq(file_ref, files_tri, Fs=Fs)
-    i_m = np.argmax(pesq_val[0,:])
-    pesq_trinicon = pesq_val[:,i_m]
-    if i_m == 0:
-        osinr_trinicon = snr(reference_n, output_tri1)
-    else:
-        osinr_trinicon = snr(reference_n, output_tri2)
+    # Measure PESQ and SINR for both output signals, we'll sort out later
+    pesq_trinicon = pesq(file_ref, files_tri, Fs=Fs)
+    osinr_trinicon[0] = snr(reference_n, output_tri1)
+    osinr_trinicon[1] = snr(reference_n, output_tri2)
 
     # Run all the beamformers
     for k,s in enumerate(n_sources):
@@ -263,11 +259,12 @@ if __name__ == '__main__':
     good_source = np.random.random((Loops,2))*bbox_size + bbox_origin
     bad_source = np.random.random((Loops,2))*bbox_size + bbox_origin
 
+    # launch all the process, keep track of time
     start = time.time()
     out = view.map_sync(perceptual_quality_evaluation, good_source, bad_source)
-    #perceptual_quality_evaluation(good_source[:,0], bad_source[:,0])
     ellapsed = time.time() - start
 
+    # how long was this ?
     print('Time ellapsed: ' + str(ellapsed))
 
     # recover all the data
