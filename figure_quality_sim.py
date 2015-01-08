@@ -253,9 +253,7 @@ if __name__ == '__main__':
     c.blocks = True
     view = c.load_balanced_view()
 
-    l_src = int(sys.argv[1])
-    u_src = int(sys.argv[2])
-    Loops = int(sys.argv[3])
+    Loops = int(sys.argv[1])
 
     # number of image sources to consider
     n_src = np.arange(l_src, u_src)
