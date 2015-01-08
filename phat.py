@@ -63,7 +63,12 @@ def correlation(x1, x2):
     else:
         return i - N1 - N2 + 1
 
+
 def delay_estimation(x1, x2, L):
+    '''
+    Estimate the delay between x1 and x2.
+    L is the block length used for phat
+    '''
 
     K = np.minimum(x1.shape[0], x2.shape[0])/L
 
@@ -72,4 +77,28 @@ def delay_estimation(x1, x2, L):
         delays[k] = phat(x1[k*L:(k+1)*L], x2[k*L:(k+1)*L])
 
     return int(np.median(delays))
+
+
+def time_align(ref, deg, L=4096):
+    '''
+    return a copy of deg time-aligned and of same-length as ref.
+    L is the block length used for correlations.
+    '''
+
+    # estimate delay of signal
+    from phat import delay_estimation
+    from numpy import zeros, minimum
+    delay = delay_estimation(ref, deg, L)
+
+    # time-align with reference segment for error metric computation
+    sig = zeros(ref.shape[0])
+    if (delay >= 0):
+        length = minimum(deg.shape[0], ref.shape[0]-delay)
+        sig[delay:length+delay] = deg[:length]
+    else:
+        length = minimum(deg.shape[0]+delay, ref.shape[0])
+        sig = zeros(ref.shape)
+        sig[:length] = deg[-delay:-delay+length]
+
+    return sig
 
