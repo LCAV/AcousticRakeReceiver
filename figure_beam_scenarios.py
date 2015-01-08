@@ -12,9 +12,9 @@ import utilities as u
 
 # Beam pattern figure properties
 freq=[800, 1600]
-figsize=(1.88,2.24)
+figsize=(4*1.88,2.24)
 xlim=[-4,8]
-ylim=[-4.9,9.4]
+ylim=[-5.2,10]
 
 # Some simulation parameters
 Fs = 8000
@@ -79,6 +79,52 @@ room1 = rg.Room.shoeBox2D(
 room1.addSource(good_source, signal=signal1, delay=delay1)
 room1.addMicrophoneArray(mics)
 
+# start a figure
+fig = plt.figure(figsize=figsize)
+
+#rect = fig.patch
+#rect.set_facecolor('white')
+#rect.set_alpha(0.15)
+
+def nice_room_plot(label, leg=None):
+    ax = plt.gca()
+
+    room1.plot(img_order=np.minimum(room1.max_order, 1), 
+            freq=freq,
+            xlim=xlim, ylim=ylim,
+            autoscale_on=False)
+
+    if leg is not None:
+        l = ax.legend(leg, loc=(0.005,0.85), fontsize=7, frameon=False)
+        #l.draw_frame(False)
+
+    ax.text(xlim[1]-1.1, ylim[1]-1.1, label, weight='bold')
+            #bbox={'facecolor':'black', 'alpha':0.1, 'pad':10})
+
+    ax.axis('on')
+    ax.tick_params(\
+        axis='both',          # changes apply to the x-axis
+        which='both',      # both major and minor ticks are affected
+        bottom='off',      # ticks along the bottom edge are off
+        left='off',
+        right='off',
+        top='off',         # ticks along the top edge are off
+        labelbottom='off',
+        labelleft='off') # 
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.patch.set_facecolor('grey')
+    ax.patch.set_alpha(0.15)
+    ax.patch.edgecolor = 'none'
+    ax.patch.linewidth = 0
+    ax.edgecolor = 'none'
+    ax.linewidth = 0
+
+
 ''' 
 SCENARIO 1
 Only one source of interest
@@ -94,13 +140,8 @@ mics.rakeMaxSINRWeights(good_sources, None,
                         attn=True, ff=False)
 
 # plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_no_interferer_MaxSINR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
+ax = plt.subplot(1,4,1)
+nice_room_plot('A', leg=('800 Hz', '1600 Hz'))
 
 '''
 SCENARIO 2
@@ -119,13 +160,9 @@ mics.rakeMaxSINRWeights(good_sources, bad_sources,
                         attn=True, ff=False)
 
 # plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_interferer_MaxSINR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
+ax = plt.subplot(1,4,2)
+nice_room_plot('B')
+
 
 '''
 SCENARIO 3
@@ -140,13 +177,8 @@ mics.rakeMaxUDRWeights(good_sources, bad_sources,
                         attn=True, ff=False)
 
 # plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_interferer_MaxUDR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
+plt.subplot(1,4,3)
+nice_room_plot('C')
 
 '''
 SCENARIO 4
@@ -166,11 +198,14 @@ mics.rakeMaxSINRWeights(good_sources, bad_sources,
                         attn=True, ff=False)
 
 # plot the room and beamformer
-fig, ax = room1.plot(img_order=np.minimum(room1.max_order, 1), 
-        freq=freq,
-        figsize=figsize, no_axis=True,
-        xlim=xlim, ylim=ylim,
-        autoscale_on=False)
-fig.savefig('figures/scenario_interferer_in_direct_path_MaxSINR.pdf',
-            facecolor=fig.get_facecolor(), edgecolor='none')
+ax = plt.subplot(1,4,4)
+nice_room_plot('D')
+
+plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.05, hspace=0.02)
+
+fig.savefig('figures/beam_scenarios.pdf')
+#fig.savefig('figures/beam_scenarios.pdf',
+            #facecolor=fig.get_facecolor(), edgecolor='none')
+
+plt.show()
 

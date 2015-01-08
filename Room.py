@@ -84,31 +84,26 @@ class Room(object):
         self.sigma2_awgn = sigma2_awgn
 
 
-    def plot(self, img_order=None, freq=None, figsize=None, no_axis=False, **kwargs):
+    def plot(self, img_order=None, freq=None, **kwargs):
 
         import matplotlib
         from matplotlib.patches import Circle, Wedge, Polygon
         from matplotlib.collections import PatchCollection
         import matplotlib.pyplot as plt
 
-        fig = plt.figure(figsize=figsize)
+        # get current figure and axis
+        fig = plt.gcf()
+        ax = plt.gca()
 
+        # we always want equal aspect ratio
+        ax.set_aspect('equal')
 
-        if no_axis is True:
-            ax = fig.add_axes([0, 0, 1, 1], aspect='equal', **kwargs)
-            ax.axis('off')
-            rect = fig.patch
-            rect.set_facecolor('gray')
-            rect.set_alpha(0.15)
-
-        else:
-            ax = fig.add_subplot(111, aspect='equal', **kwargs)
+        # set the properties of the plot
+        for key in kwargs:
+            plt.setp(ax, key, kwargs[key])
 
         # draw room
         polygons = [Polygon(self.corners.T, True)]
-        #if no_axis is True:
-            #r = Rectangle((xlim[0],ylim[0]), xlim[1]-xlim[0], ylim[1]-ylim[0])
-            #polygons.append(r)
         p = PatchCollection(polygons, cmap=matplotlib.cm.jet, 
                 facecolor=np.array([1,1,1]), edgecolor=np.array([0,0,0]))
         ax.add_collection(p)
@@ -163,7 +158,7 @@ class Room(object):
                 #ax.legend(freq)
 
         # define some markers for different sources and colormap for damping
-        markers = ['o', 's', 'v', '.']
+        markers = ['o', '*', 'v', 's', '.']
         cmap = plt.get_cmap('YlGnBu')
         # draw the scatter of images
         for i, source in enumerate(self.sources):
@@ -192,8 +187,6 @@ class Room(object):
 
         # keep axis equal, or the symmetry is lost
         #ax.axis('equal')
-
-        return fig, ax
 
     def plotRIR(self):
 
