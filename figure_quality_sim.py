@@ -241,15 +241,17 @@ if __name__ == '__main__':
     import numpy as np
     import sys
     import time
-    from IPython import parallel
 
-    # setup parallel computation env
-    c = parallel.Client()
-    print c.ids
-    c.blocks = True
-    view = c.load_balanced_view()
-
-    Loops = int(sys.argv[1])
+    if len(sys.argv) == 3 and sys.argv[1] == '-s':
+        parallel = False
+        Loops = int(sys.argv[2])
+    elif len(sys.argv) == 2:
+        parallel = True
+        Loops = int(sys.argv[1])
+    else:
+        print 'Usage: ipython figure_quality_sim.py -- [-s] <loop_number>'
+        print '       -s: Serial loop, no parallelism used.'
+        sys.exit(0)
 
     # we restrict sources to be in a square 1m away from every wall and from the array
     bbox_size = np.array([[2.,2.5]])
@@ -259,9 +261,28 @@ if __name__ == '__main__':
     good_source = np.random.random((Loops,2))*bbox_size + bbox_origin
     bad_source = np.random.random((Loops,2))*bbox_size + bbox_origin
 
-    # launch all the process, keep track of time
+    # start timing simulation
     start = time.time()
-    out = view.map_sync(perceptual_quality_evaluation, good_source, bad_source)
+
+    if parallel is True:
+        # Launch many workers!
+        from IPython import parallel
+
+        # setup parallel computation env
+        c = parallel.Client()
+        print c.ids
+        c.blocks = True
+        view = c.load_balanced_view()
+
+        out = view.map_sync(perceptual_quality_evaluation, good_source, bad_source)
+
+    else:
+        # Just one boring loop...
+        out = []
+        for i in xrange(Loops):
+            out.append(perceptual_quality_evaluation(good_source[i,:], bad_source[i,:]))
+
+    # How long was this ?
     ellapsed = time.time() - start
 
     # how long was this ?

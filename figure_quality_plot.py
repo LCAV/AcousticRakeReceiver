@@ -23,6 +23,7 @@ files = [file for file in os.listdir(sim_data_dir) if fnmatch.fnmatch(file, name
 # Or just specify a list of file names
 files = [ '20150109_10000Loops/quality_20150109-070951z.npz', 
           '20150109_10000Loops/quality_20150109-095429z.npz', ]
+#files = ['20150109_10000Loops/quality_20150109-095429z.npz', ]
 
 # Empty data containers
 good_source = np.zeros((0,2))
@@ -53,6 +54,13 @@ for fname in files:
     opesq_tri = np.concatenate((opesq_tri,a['pesq_trinicon']), axis=0)
 
 loops = good_source.shape[0]
+
+opesq_bf_win = opesq_bf[:4800]
+opesq_bf_lin = opesq_bf[4800:]
+
+m_win = np.median(opesq_bf_win[:,0,:,:], axis=0)
+m_lin = np.median(opesq_bf_lin[:,0,:,:], axis=0)
+print m_win - m_lin
 
 print 'Number of loops:',loops
 print 'Median input Raw MOS',np.median(ipesq[:,0])
