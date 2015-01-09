@@ -21,9 +21,8 @@ name_pattern = 'quality_2015*.npz'
 files = [file for file in os.listdir(sim_data_dir) if fnmatch.fnmatch(file, name_pattern)]
 
 # Or just specify a list of file names
-files = [ '20150109_10000Loops/quality_20150109-070951z.npz', 
+files = [ '20150109_10000Loops/quality_20150109-070951z_fixed.npz', 
           '20150109_10000Loops/quality_20150109-095429z.npz', ]
-#files = ['20150109_10000Loops/quality_20150109-095429z.npz', ]
 
 # Empty data containers
 good_source = np.zeros((0,2))
@@ -41,14 +40,12 @@ for fname in files:
 
     a = np.load(sim_data_dir + fname)
 
-    print good_source.shape
-
     good_source = np.concatenate((good_source, a['good_source']), axis=0)
     bad_source = np.concatenate((bad_source, a['bad_source']), axis=0)
 
-    isinr = np.concatenate((isinr,a['isinr']), axis=0)
-    osinr_bf = np.concatenate((osinr_bf,a['osinr_bf']), axis=0)
-    osinr_tri = np.concatenate((osinr_tri,a['osinr_trinicon']), axis=0)
+    isinr = np.concatenate((isinr,u.dB(a['isinr'])), axis=0)
+    osinr_bf = np.concatenate((osinr_bf,u.dB(a['osinr_bf'])), axis=0)
+    osinr_tri = np.concatenate((osinr_tri,u.dB(a['osinr_trinicon'])), axis=0)
     ipesq = np.concatenate((ipesq,a['pesq_input']), axis=0)
     opesq_bf = np.concatenate((opesq_bf,a['pesq_bf']), axis=0)
     opesq_tri = np.concatenate((opesq_tri,a['pesq_trinicon']), axis=0)
@@ -58,13 +55,10 @@ loops = good_source.shape[0]
 opesq_bf_win = opesq_bf[:4800]
 opesq_bf_lin = opesq_bf[4800:]
 
-m_win = np.median(opesq_bf_win[:,0,:,:], axis=0)
-m_lin = np.median(opesq_bf_lin[:,0,:,:], axis=0)
-print m_win - m_lin
-
 print 'Number of loops:',loops
 print 'Median input Raw MOS',np.median(ipesq[:,0])
 print 'Median input MOS LQO',np.median(ipesq[:,1])
+print 'Median input SINR',np.median(isinr[:])
 
 # Trinicon is blind so we have PESQ for both output channels
 # Select the channel that has highest Raw MOS for evaluation
