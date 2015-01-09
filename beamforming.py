@@ -449,7 +449,7 @@ class Beamformer(MicrophoneArray):
 
     def rakeMaxUDRWeights(self, source, interferer, R_n=None, ff=False, attn=True):
         
-        if source.shape[1] is 1:
+        if source.shape[1] == 1:
             self.rakeMaxSINRWeights(source, interferer, R_n=R_n, ff=ff, attn=attn)
             return
 
