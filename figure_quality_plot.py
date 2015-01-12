@@ -54,9 +54,6 @@ for fname in files:
 
 loops = good_source.shape[0]
 
-opesq_bf_win = opesq_bf[:4800]
-opesq_bf_lin = opesq_bf[4800:]
-
 print 'Number of loops:',loops
 print 'Median input Raw MOS',np.median(ipesq[:,0])
 print 'Median input MOS LQO',np.median(ipesq[:,1])
@@ -72,11 +69,10 @@ print 'Median Trinicon Raw MOS',np.median(opesq_tri_max[:,0])
 print 'Median Trinicon MOS LQO',np.median(opesq_tri_max[:,1])
 print 'Median Trinicon SINR',np.median(osinr_tri_max[:])
 
-plt.figure()
-plt.plot(good_source[:,0], good_source[:,1], 'o')
-plt.plot(bad_source[:,0], bad_source[:,1], '*')
-
 def nice_plot(x, ylabel, bf_order=None):
+    '''
+    Define a function to plot consistently the data
+    '''
 
     if bf_order is None:
         bf_order = beamformer_names
@@ -141,6 +137,8 @@ def nice_plot(x, ylabel, bf_order=None):
         plt.legend(bf_order, fontsize=7, loc='upper left', frameon=False, labelspacing=0)
 
 
+'''
+# Here is a larger figure with all performance measures.
 plt.figure(figsize=(12,6))
 
 plt.subplot(2,3,1)
@@ -172,11 +170,12 @@ plt.xlabel('Number of sources')
 plt.ylabel('Improvement SINR')
 
 plt.tight_layout(pad=0.2)
+'''
 
+# Here we plot the figure used in the paper (Fig. 10)
 plt.figure(figsize=(4,3))
 nice_plot(opesq_bf[:,0,:,:], 'PESQ [Raw MOS]', 
         bf_order=['Rake-MaxSINR','Rake-DS','Rake-MaxUDR'])
 plt.tight_layout(pad=0.1)
 plt.savefig('figures/perceptual_quality.pdf')
 
-plt.show()

@@ -297,7 +297,7 @@ if __name__ == '__main__':
     osinr_bf = np.array([o[5] for o in out])
 
     # save the simulation results to file
-    filename = 'sim_data/quality_' + time.strftime('%Y%m%d-%H%M%Sz') + '.npz'
+    filename = 'sim_data/quality_' + time.strftime('%Y%m%d-%H%M%S') + '.npz'
     np.savez_compressed(filename, good_source=good_source, bad_source=bad_source,
             isinr=isinr, osinr_bf=osinr_bf, osinr_trinicon=osinr_trinicon,
             pesq_bf=pesq_bf, pesq_input=pesq_input, pesq_trinicon=pesq_trinicon)
