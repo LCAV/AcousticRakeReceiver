@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Acousticrakereceiver by LCAV</title>
+    <title>Raking the Cocktail Party by LCAV</title>
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
@@ -15,8 +15,8 @@
   <body>
     <div class="wrapper">
       <header>
-        <h1>Acousticrakereceiver</h1>
-        <p>The acoustic rake receiver, a microphone beamformer that uses echoes to improve the noise and interference suppression. Python code to reproduce all the results from the eponymous paper by Ivan Dokmanic, Robin Scheibler, and Martin Vetterli.</p>
+        <h1>Raking the Cocktail Party</h1>
+        <p>The acoustic rake receiver, a microphone beamformer that uses echoes to improve the noise and interference suppression. Python code to reproduce all the results from the paper Raking the Cocktail Party by Ivan Dokmanić, Robin Scheibler, and Martin Vetterli.</p>
 
         <p class="view"><a href="https://github.com/LCAV/AcousticRakeReceiver">View the Project on GitHub <small>LCAV/AcousticRakeReceiver</small></a></p>
 
@@ -29,10 +29,10 @@
       </header>
       <section>
         <h1>
-<a name="acoustic-rake-receiver" class="anchor" href="#acoustic-rake-receiver"><span class="octicon octicon-link"></span></a>Acoustic Rake Receiver</h1>
+<a id="raking-the-cocktail-party" class="anchor" href="#raking-the-cocktail-party" aria-hidden="true"><span class="octicon octicon-link"></span></a>Raking the Cocktail Party</h1>
 
 <p>This repository contains all the code to reproduce the results of the paper
-<em>Raking the Cocktail Party</em>.</p>
+<a href="http://arxiv.org/abs/1407.5514"><em>Raking the Cocktail Party</em></a>.</p>
 
 <p>We created a simple framework for simulation of room acoustics in object
 oriented python and apply it to perform numerical experiments related to
@@ -45,7 +45,7 @@ a standalone python package in the future.</p>
 or the theory behind it. Just ask!</p>
 
 <h2>
-<a name="abstract" class="anchor" href="#abstract"><span class="octicon octicon-link"></span></a>Abstract</h2>
+<a id="abstract" class="anchor" href="#abstract" aria-hidden="true"><span class="octicon octicon-link"></span></a>Abstract</h2>
 
 <p>We present the concept of an acoustic rake receiver (ARR) — a microphone
 beamformer that uses echoes to improve the noise and interference suppression.
@@ -67,12 +67,16 @@ accompany the paper by the complete simulation and processing chain written in
 Python.</p>
 
 <h2>
-<a name="authors" class="anchor" href="#authors"><span class="octicon octicon-link"></span></a>Authors</h2>
+<a id="authors" class="anchor" href="#authors" aria-hidden="true"><span class="octicon octicon-link"></span></a>Authors</h2>
 
-<p>Ivan Dokmanić, Robin Scheibler, and Martin Vetterli are with <a href="http://lcav.epfl.ch">LCAV</a>-<a href="http://www.epfl.ch">EPFL</a>.</p>
+<p>Ivan Dokmanić, Robin Scheibler, and Martin Vetterli are with 
+Laboratory for Audiovisual Communications (<a href="http://lcav.epfl.ch">LCAV</a>) at 
+<a href="http://www.epfl.ch">EPFL</a>.</p>
+
+<p><img src="http://lcav.epfl.ch/files/content/sites/lcav/files/images/Home/LCAV_anim_200.gif"></p>
 
 <h4>
-<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h4>
+<a id="contact" class="anchor" href="#contact" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contact</h4>
 
 <p><a href="mailto:ivan%5Bdot%5Ddokmanic%5Bat%5Depfl%5Bdot%5Dch">Ivan Dokmanić</a> <br>
 EPFL-IC-LCAV <br>
@@ -81,24 +85,159 @@ Station 14 <br>
 1015 Lausanne</p>
 
 <h2>
-<a name="sound-samples" class="anchor" href="#sound-samples"><span class="octicon octicon-link"></span></a>Sound Samples</h2>
+<a id="selected-results-from-the-paper" class="anchor" href="#selected-results-from-the-paper" aria-hidden="true"><span class="octicon octicon-link"></span></a>Selected results from the paper</h2>
+
+<h3>
+<a id="spectrograms-and-sound-samples" class="anchor" href="#spectrograms-and-sound-samples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Spectrograms and Sound Samples</h3>
+
+<p><img src="https://raw.githubusercontent.com/LCAV/AcousticRakeReceiver/master/figures/spectrograms.png" width="800"></p>
+
+<p>Comparison of the conventional Max-SINR and Rake-Max-SINR beamformer on a real
+speech sample.  Spectrograms of (A) clean signal of interest, (B) signal
+corrupted by an interferer and additive white Gaussian noise at the microphone
+input, outputs of (C) conventional Max-SINR and (D) Rake-Max- SINR beamformers.
+Time naturally goes from left to right, and frequency increases from zero at
+the bottom up to Fs/2. To highlight the improvement of Rake-Max-SINR over
+Max-SINR, we blow-up three parts of the spectrograms in the lower part of the
+figure. The boxes and the corresponding part of the original spectrogram are
+numbered in (A). The numbering is the same but omitted in the rest of the
+figure for clarity.</p>
+
+<p>The corresponding sound samples:</p>
 
 <ul>
 <li>
-<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav">sample1</a> Simulated microphone input signal.</li>
+<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/samples/singing_8000.wav">A</a> Target signal.</li>
 <li>
-<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav">sample2</a> Output of conventional Max-SINR beamformer.</li>
+<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav">B</a> Simulated microphone input signal.</li>
 <li>
-<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav">sample3</a> Output of proposed  Rake-Max-SINR beamformer.</li>
-</ul><h2>
-<a name="dependencies" class="anchor" href="#dependencies"><span class="octicon octicon-link"></span></a>Dependencies</h2>
+<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav">C</a> Output of conventional Max-SINR beamformer.</li>
+<li>
+<a href="https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav">D</a> Output of proposed  Rake-Max-SINR beamformer.</li>
+</ul>
+
+<h3>
+<a id="beam-patterns" class="anchor" href="#beam-patterns" aria-hidden="true"><span class="octicon octicon-link"></span></a>Beam Patterns</h3>
+
+<p><img src="https://raw.githubusercontent.com/LCAV/AcousticRakeReceiver/master/figures/beam_scenarios.png" width="800"></p>
+
+<p>Beam patterns in different scenarios. The rectangular room is 4 by 6 metres and
+contains a source of interest (•) and an interferer (✭) ((B), (C), (D) only).
+The first order image sources are also displayed. The weight computation of the
+beamformer includes the direct source and the first order image sources of both
+desired source and interferer (when applicable). (A) Rake-Max-SINR, no
+interferer, (B) Rake-Max-SINR, one interferer, (C) Rake-Max-UDR, one
+interferer, (D) Rake-Max-SINR, interferer is in direct path.</p>
+
+<h2>
+<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h2>
 
 <ul>
 <li><p>A working distribution of <a href="https://www.python.org/downloads/">Python 2.7</a>.</p></li>
 <li><p>The code relies heavily on <a href="http://www.numpy.org/">Numpy</a>, <a href="http://www.scipy.org/">Scipy</a>, and <a href="http://matplotlib.org">matplotlib</a>.</p></li>
 <li><p>We use the distribution <a href="https://store.continuum.io/cshop/anaconda/">anaconda</a> to simplify the setup of the environment.</p></li>
-</ul><h2>
-<a name="recreate-the-figures-and-sound-samples" class="anchor" href="#recreate-the-figures-and-sound-samples"><span class="octicon octicon-link"></span></a>Recreate the figures and sound samples</h2>
+</ul>
+
+<h3>
+<a id="pesq-tool" class="anchor" href="#pesq-tool" aria-hidden="true"><span class="octicon octicon-link"></span></a>PESQ Tool</h3>
+
+<p>Download the <a href="http://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en">source files</a> of the ITU P.862
+compliance tool from the ITU website.</p>
+
+<h4>
+<a id="unix-compilation-linuxmac-os-x" class="anchor" href="#unix-compilation-linuxmac-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>Unix compilation (Linux/Mac OS X)</h4>
+
+<p>Execute the following sequence of commands to get to the source code.</p>
+
+<pre><code>mkdir PESQ
+cd PESQ
+wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&amp;id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&amp;type=items'
+unzip dologin_pub.asp\?lang\=e\&amp;id\=T-REC-P.862-200511-I\!Amd2\!SOFT-ZST-E\&amp;type\=items
+cd Software
+unzip 'P862_annex_A_2005_CD  wav final.zip'
+cd P862_annex_A_2005_CD/source/
+</code></pre>
+
+<p>In the <code>Software/P862_annex_A_2005_CD/source/</code> directory, create a file called <code>Makefile</code> and copy
+the following into it.</p>
+
+<pre><code>CC=gcc
+CFLAGS=-O2
+
+OBJS=dsp.o pesqdsp.o pesqio.o pesqmod.o pesqmain.o
+DEPS=dsp.h pesq.h pesqpar.h
+
+%.o: %.c $(DEPS)
+  $(CC) -c -o $@ $&lt; $(CFLAGS)
+
+pesq: $(OBJS)
+  $(CC) -o $@ $^ $(CFLAGS)
+
+.PHONY : clean
+clean :
+  -rm pesq $(OBJS)
+</code></pre>
+
+<p>Execute compilation by typing this.</p>
+
+<pre><code>make pesq
+</code></pre>
+
+<p>Finally move the <code>pesq</code> binary to <code>&lt;repo_root&gt;/bin/</code>.</p>
+
+<p>Notes:</p>
+
+<ul>
+<li>The files input to the pesq utility must be 16 bit PCM wav files.</li>
+<li>File names longer than 14 characters (suffix included) cause the utility to
+crash with the message <code>Abort trap(6)</code> or similar.</li>
+</ul>
+
+<h4>
+<a id="windows-compilation" class="anchor" href="#windows-compilation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows compilation</h4>
+
+<ol>
+<li>
+<p>Open visual studio, create a new project from existing files and select the directory
+containing the source code of PESQ (<code>Software\P862_annex_A_2005_CD\source\</code>).</p>
+
+<pre><code>    FILE -&gt; New -&gt; Project From Existing Code...
+</code></pre>
+</li>
+<li>
+<p>Select <code>Visual C++</code> from the dropdown menu, then next.</p>
+
+<ul>
+<li>
+<em>Project file location</em> : directory containing source code of pesq (<code>Software\P862_annex_A_2005_CD\source\</code>).</li>
+<li>
+<em>Project Name</em> : pesq</li>
+<li>Then next.</li>
+<li>As <em>project type</em>, select <code>Console application</code> project.</li>
+<li>Then finish.</li>
+</ul>
+</li>
+<li>
+<p>Go to</p>
+
+<pre><code>  BUILD -&gt; Configuration Manager...
+</code></pre>
+
+<p>and change active solution configuration from <code>Debug</code> to <code>Release</code>. Then Close.</p>
+</li>
+<li>
+<p>Then </p>
+
+<pre><code>  BUILD -&gt; Build Solution
+</code></pre>
+</li>
+<li><p>Copy the executable <code>Release\pesq.exe</code> to the bin folder.</p></li>
+</ol>
+
+<p><em>(tested with Microsoft Windows Server 2012)</em></p>
+
+<h2>
+<a id="recreate-the-figures-and-sound-samples" class="anchor" href="#recreate-the-figures-and-sound-samples" aria-hidden="true"><span class="octicon octicon-link"></span></a>Recreate the figures and sound samples</h2>
 
 <p>In a UNIX terminal, run the following script.</p>
 
@@ -112,13 +251,29 @@ run figure_beam_scenarios.py
 run figure_Measures1.py
 run figure_Measures2.py
 run figure_SumNorm.py
+run figure_quality_sim.py -s 10000
+run figure_quality_plot.py
 </code></pre>
 
 <p>The figures and sound samples generated are collected in <code>figures</code> and
 <code>output_samples</code>, respectively.</p>
 
+<p>The script <code>figure_quality_sim.py</code> is very heavy computationally. Above, 10000
+is the number of loops. This number can be decreased when testing the code.
+It is possible to run it also in parallel in the following way. Open a shell
+and type in the following.</p>
+
+<pre><code>ipcluster start -n &lt;number_of_workers&gt;
+ipython figure_quality_sim.py 10000
+</code></pre>
+
+<p>On the first line, we start the ipython workers. Notice that we omit the <code>-s</code>
+option on the second line.  This will run <code>&lt;number_of_workers&gt;</code> parallel jobs.
+Be sure to <em>deactivate</em> the MKL extensions if you have them enabled to make sure
+you have maximum efficiency.</p>
+
 <h2>
-<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
 
 <p>Copyright (c) 2014, Ivan Dokmanić, Robin Scheibler, Martin Vetterli</p>
 
