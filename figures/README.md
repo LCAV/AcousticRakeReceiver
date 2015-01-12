@@ -14,3 +14,4 @@ The correspondance between files and figures in the paper is the following.
 * Fig. 7 `UDR_vs_K.pdf`
 * Fig. 8 `SINR_vs_freq.pdf`
 * Fig. 9 `spectrograms.pdf`
+* Fig. 10 `perceptual_quality.pdf`

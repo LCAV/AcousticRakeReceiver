@@ -55,13 +55,42 @@ Station 14 <br>
 1015 Lausanne
 
 
-Sound Samples
--------------
+Selected results from the paper
+-------------------------------
 
-* [sample1](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav) Simulated microphone input signal.
-* [sample2](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav) Output of conventional Max-SINR beamformer.
-* [sample3](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav) Output of proposed  Rake-Max-SINR beamformer.
+### Spectrograms and Sound Samples
 
+<img src="https://raw.githubusercontent.com/LCAV/AcousticRakeReceiver/master/figures/spectrograms.png" width=800>
+
+Comparison of the conventional Max-SINR and Rake-Max-SINR beamformer on a real
+speech sample.  Spectrograms of (A) clean signal of interest, (B) signal
+corrupted by an interferer and additive white Gaussian noise at the microphone
+input, outputs of (C) conventional Max-SINR and (D) Rake-Max- SINR beamformers.
+Time naturally goes from left to right, and frequency increases from zero at
+the bottom up to Fs/2. To highlight the improvement of Rake-Max-SINR over
+Max-SINR, we blow-up three parts of the spectrograms in the lower part of the
+figure. The boxes and the corresponding part of the original spectrogram are
+numbered in (A). The numbering is the same but omitted in the rest of the
+figure for clarity.
+
+The corresponding sound samples:
+
+* [A](https://github.com/LCAV/AcousticRakeReceiver/raw/master/samples/singing_8000.wav) Target signal.
+* [B](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav) Simulated microphone input signal.
+* [C](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav) Output of conventional Max-SINR beamformer.
+* [D](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav) Output of proposed  Rake-Max-SINR beamformer.
+
+### Beam Patterns
+
+<img src="https://raw.githubusercontent.com/LCAV/AcousticRakeReceiver/master/figures/beam_scenarios.png" width=800>
+
+Beam patterns in different scenarios. The rectangular room is 4 by 6 metres and
+contains a source of interest (•) and an interferer (✭) ((B), (C), (D) only).
+The first order image sources are also displayed. The weight computation of the
+beamformer includes the direct source and the first order image sources of both
+desired source and interferer (when applicable). (A) Rake-Max-SINR, no
+interferer, (B) Rake-Max-SINR, one interferer, (C) Rake-Max-UDR, one
+interferer, (D) Rake-Max-SINR, interferer is in direct path.
 
 Dependencies
 ------------
