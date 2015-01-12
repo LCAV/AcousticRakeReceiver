@@ -2,7 +2,7 @@ Acoustic Rake Receiver
 ======================
 
 This repository contains all the code to reproduce the results of the paper
-*Raking the Cocktail Party*.
+[*Raking the Cocktail Party*](http://arxiv.org/abs/1407.5514).
 
 We created a simple framework for simulation of room acoustics in object
 oriented python and apply it to perform numerical experiments related to
@@ -79,10 +79,21 @@ compliance tool from the ITU website.
 
 #### Unix compilation (Linux/Mac OS X)
 
-Compile the utility using the following makefile.
+Execute the following sequence of commands to get to the source code.
+
+    mkdir PESQ
+    cd PESQ
+    wget 'https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items'
+    unzip dologin_pub.asp\?lang\=e\&id\=T-REC-P.862-200511-I\!Amd2\!SOFT-ZST-E\&type\=items
+    cd Software
+    unzip 'P862_annex_A_2005_CD  wav final.zip'
+    cd P862_annex_A_2005_CD/source/
+
+In the `Software/P862_annex_A_2005_CD/source/` directory, create a file called `Makefile` and copy
+the following into it.
 
     CC=gcc
-    CFLAGS=
+    CFLAGS=-O2
 
     OBJS=dsp.o pesqdsp.o pesqio.o pesqmod.o pesqmain.o
     DEPS=dsp.h pesq.h pesqpar.h
@@ -93,52 +104,48 @@ Compile the utility using the following makefile.
     pesq: $(OBJS)
       $(CC) -o $@ $^ $(CFLAGS)
 
-Then move the `pesq` binary to the root of the repository.
+    .PHONY : clean
+    clean :
+      -rm pesq $(OBJS)
+
+Execute compilation by typing this.
+
+    make pesq
+
+Finally move the `pesq` binary to `<repo_root>/bin/`.
 
 Notes:
 * The files input to the pesq utility must be 16 bit PCM wav files.
-* File names longer than 14 characters (suffix included) cause the utility to crash with the message `Abort trap(6)` or similar.
+* File names longer than 14 characters (suffix included) cause the utility to
+  crash with the message `Abort trap(6)` or similar.
 
 #### Windows compilation
 
-Open visual studio, create a new project from existing files and select the directory
-containing the source code of PESQ.
+1. Open visual studio, create a new project from existing files and select the directory
+  containing the source code of PESQ (`Software\P862_annex_A_2005_CD\source\`).
 
-        FILE -> New -> Project From Existing Code...
+          FILE -> New -> Project From Existing Code...
 
-Select `Visual C++` from the dropdown menu, then next.
-**Project file location** : directory containing source code of pesq.
-**Project Name** : pesq
-Then next.
-As project type, select Console application project.
-Then finish.
+2. Select `Visual C++` from the dropdown menu, then next.
+    * *Project file location* : directory containing source code of pesq (`Software\P862_annex_A_2005_CD\source\`).
+    * *Project Name* : pesq
+    * Then next.
+    * As *project type*, select `Console application` project.
+    * Then finish.
 
-Go to
-        BUILD -> Configuration Manager...
-and change active solution configuration from Debug to Release. Then Close.
+3. Go to
 
-Then BUILD -> Build Solution
+          BUILD -> Configuration Manager...
 
-Copy the executable pesq.exe to the bin folder.
-Select 
+    and change active solution configuration from `Debug` to `Release`. Then Close.
 
-(tested with Micros)
+4. Then 
 
-### TIMIT database
+          BUILD -> Build Solution
 
-We use the [TIMIT](https://catalog.ldc.upenn.edu/LDC93S1) database for the perceptual evaluation. Obtain a copy
-for yourself through your institution or by paying USD 250. Sorry :(
+5. Copy the executable `Release\pesq.exe` to the bin folder.
 
-### Install Scikits.Audiolab
-
-Scikits.Audiolab is only necessary if you want to work with the samples from the TIMIT database (that are in the NIST format).
-The script `figure_quality.py` requires the module [sckits.audiolab](http://scikits.appspot.com/audiolab) to be installed. This in turns requires
-the `libsndfile` library to work. Here are the steps used to install it on Mac OS X Yosemite using and [Homebrew](http://brew.sh/)
-package manager and pip.
-
-    brew install libsndfile
-    pip install scikits.audiolab
-
+*(tested with Microsoft Windows Server 2012)*
 
 Recreate the figures and sound samples
 --------------------------------------
@@ -154,9 +161,24 @@ Alternatively, type in the following commands in an ipython shell.
     run figure_Measures1.py
     run figure_Measures2.py
     run figure_SumNorm.py
+    run figure_quality_sim.py -s 10000
+    run figure_quality_plot.py
 
 The figures and sound samples generated are collected in `figures` and
 `output_samples`, respectively.
+
+The script `figure_quality_sim.py` is very heavy computationally. Above, 10000
+is the number of loops. This number can be decreased when testing the code.
+It is possible to run it also in parallel in the following way. Open a shell
+and type in the following.
+
+    ipcluster start -n <number_of_workers>
+    ipython figure_quality_sim.py 10000
+
+On the first line, we start the ipython workers. Notice that we omit the `-s`
+option on the second line.  This will run `<number_of_workers>` parallel jobs.
+Be sure to *deactivate* the MKL extensions if you have them enabled to make sure
+you have maximum efficiency.
 
 License
 -------

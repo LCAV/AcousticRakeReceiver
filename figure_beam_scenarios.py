@@ -96,10 +96,8 @@ def nice_room_plot(label, leg=None):
 
     if leg is not None:
         l = ax.legend(leg, loc=(0.005,0.85), fontsize=7, frameon=False)
-        #l.draw_frame(False)
 
     ax.text(xlim[1]-1.1, ylim[1]-1.1, label, weight='bold')
-            #bbox={'facecolor':'black', 'alpha':0.1, 'pad':10})
 
     ax.axis('on')
     ax.tick_params(\
@@ -204,8 +202,7 @@ nice_room_plot('D')
 plt.subplots_adjust(left=0.0, right=1., bottom=0., top=1., wspace=0.05, hspace=0.02)
 
 fig.savefig('figures/beam_scenarios.pdf')
-#fig.savefig('figures/beam_scenarios.pdf',
-            #facecolor=fig.get_facecolor(), edgecolor='none')
+fig.savefig('figures/beam_scenarios.png',dpi=300)
 
 plt.show()
 
