@@ -149,7 +149,7 @@ class Room(object):
                 for f,h in zip(newfreq, H):
                     x = np.cos(phis) * h * norm + self.micArray.center[0, 0]
                     y = np.sin(phis) * h * norm + self.micArray.center[1, 0]
-                    l = ax.plot(x, y, '-', linewidth=0.5)
+                    l = ax.plot(x, y, '-', linewidth=1.0)
                     #lbl = '%.2f' % f
                     #i0 = i*360/len(freq)
                     #ax.text(x[i0], y[i0], lbl, color=plt.getp(l[0], 'color'))
@@ -158,7 +158,7 @@ class Room(object):
                 #ax.legend(freq)
 
         # define some markers for different sources and colormap for damping
-        markers = ['o', '*', 'v', 's', '.']
+        markers = ['o', '$\mathbf{+}$', '*', 'v', 's', '.']
         cmap = plt.get_cmap('YlGnBu')
         # draw the scatter of images
         for i, source in enumerate(self.sources):

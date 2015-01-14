@@ -174,8 +174,10 @@ plt.tight_layout(pad=0.2)
 
 # Here we plot the figure used in the paper (Fig. 10)
 plt.figure(figsize=(4,3))
-nice_plot(opesq_bf[:,0,:,:], 'PESQ [Raw MOS]', 
+nice_plot(opesq_bf[:,0,:,:], 'PESQ [MOS]', 
         bf_order=['Rake-MaxSINR','Rake-DS','Rake-MaxUDR'])
-plt.tight_layout(pad=0.1)
+#plt.plot(np.arange(max_sources), np.median(ipesq[:,0])*np.ones(max_sources))
+#plt.plot(np.arange(max_sources), np.median(opesq_tri_max[:,0])*np.ones(max_sources))
+plt.tight_layout()
 plt.savefig('figures/perceptual_quality.pdf')
 
