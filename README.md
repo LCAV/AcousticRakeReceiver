@@ -1,8 +1,8 @@
-Acoustic Rake Receiver
-======================
+Raking the Cocktail Party
+=========================
 
 This repository contains all the code to reproduce the results of the paper
-[*Raking the Cocktail Party*](http://arxiv.org/abs/1407.5514).
+[*Raking the Cocktail Party*](http://infoscience.epfl.ch/record/200336).
 
 We created a simple framework for simulation of room acoustics in object
 oriented python and apply it to perform numerical experiments related to
@@ -75,7 +75,7 @@ figure for clarity.
 
 The corresponding sound samples:
 
-* [A](https://github.com/LCAV/AcousticRakeReceiver/raw/master/samples/singing_8000.wav) Target signal.
+* [A](https://github.com/LCAV/AcousticRakeReceiver/raw/master/samples/singing_8000.wav) Desired signal.
 * [B](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/input_mic.wav) Simulated microphone input signal.
 * [C](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_maxsinr.wav) Output of conventional Max-SINR beamformer.
 * [D](https://github.com/LCAV/AcousticRakeReceiver/raw/master/output_samples/output_rake-maxsinr.wav) Output of proposed  Rake-Max-SINR beamformer.
@@ -96,9 +96,7 @@ Dependencies
 ------------
 
 * A working distribution of [Python 2.7](https://www.python.org/downloads/).
-
 * The code relies heavily on [Numpy](http://www.numpy.org/), [Scipy](http://www.scipy.org/), and [matplotlib](http://matplotlib.org).
-
 * We use the distribution [anaconda](https://store.continuum.io/cshop/anaconda/) to simplify the setup of the environment.
 
 ### PESQ Tool
