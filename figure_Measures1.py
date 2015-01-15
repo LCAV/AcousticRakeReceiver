@@ -155,7 +155,8 @@ for i, bf in enumerate(beamformer_names):
             next(linecycler),
             linewidth=1,
             markersize=4,
-            markeredgewidth=.5)
+            markeredgewidth=.5,
+            clip_on=False)
 
 plt.fill_between(range(0, max_K),
                  np.median(SNR['Rake-MaxSINR'], axis=1) - SNR_ci['Rake-MaxSINR'],
@@ -213,7 +214,8 @@ for i, bf in enumerate(beamformer_names):
             next(linecycler),
             linewidth=1,
             markersize=4,
-            markeredgewidth=.5)
+            markeredgewidth=.5,
+            clip_on=False)
 
 plt.fill_between(range(0, max_K),
                  np.median(UDR['Rake-MaxUDR'], axis=1) - UDR_ci['Rake-MaxUDR'],

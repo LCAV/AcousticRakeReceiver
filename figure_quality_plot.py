@@ -92,6 +92,9 @@ def nice_plot(x, ylabel, bf_order=None):
 
     ax1.set_color_cycle(map2)
 
+    # no clipping of the beautiful markers
+    plt.setp(ax1,'clip_on',False)
+
     for bf in bf_order:
         i = bf_dict[bf]
         p, = plt.plot(range(0, max_sources), 
@@ -99,7 +102,8 @@ def nice_plot(x, ylabel, bf_order=None):
             next(linecycler),
             linewidth=1,
             markersize=4,
-            markeredgewidth=.5)
+            markeredgewidth=.5,
+            clip_on=False)
 
         if bf == 'Rake-MaxSINR':
             plt.fill_between(range(0, max_sources),
